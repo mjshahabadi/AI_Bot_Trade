@@ -433,7 +433,7 @@ $govFiles = @(".github/AGENTS.md", ".github/GPT_MASTER_GOVERNANCE.md", ".github/
 $govDelta = @()
 foreach ($gf in $govFiles) {
     $d = Invoke-GitChecked -RepoPath $RepoRoot -GitArgs @("diff", "--name-only", $govBaseline, "--", $gf)
-    if (-not $d.Ok) { $govDelta += "git_diff_failed:$gf:$($d.ExitCode)" }
+    if (-not $d.Ok) { $govDelta += "git_diff_failed:${gf}:$($d.ExitCode)" }
     elseif ($d.Output) { $govDelta += $d.Output }
 }
 $agentsHash = (Get-FileHash (Join-Path $RepoRoot ".github\AGENTS.md") -Algorithm SHA256).Hash
