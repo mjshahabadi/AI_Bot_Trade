@@ -1,0 +1,10 @@
+INF-003 independent checksum verification
+run_id=run-20261127-inf003-r3
+tested_commit=6564d06b964d8af1aa606d3d3ba25618e2acaaa7
+verified_at_utc=2026-11-27T16:47:30Z
+method=recompute SHA256 for every path listed in evidence_sha256.txt against filesystem
+files_checked=56
+ok=56
+mismatches=0
+result=PASS
+note=This verify file is appended after the initial list; evidence_sha256.txt is recalculated afterward to include this file.

@@ -20,3 +20,34 @@ This requirement is approved only for Issue #3 / INF-003. It does **not** ratify
 ## Trading impact
 
 No trading rule is created, changed, or implied. No live orders. No Strategy Tester trading run is required by this requirement.
+
+## Latest evidence (CTO rework r3) — acceptance PENDING
+
+| Field | Value |
+|---|---|
+| Run ID | `run-20261127-inf003-r3` |
+| Tested SHA | `6564d06b964d8af1aa606d3d3ba25618e2acaaa7` |
+| Branch | `test/issue-3-inf-003-env-doctor` |
+| PR | https://github.com/mjshahabadi/AI_Bot_Trade/pull/15 |
+| Acceptance | PENDING independent GPT CTO review — **not approved** |
+| Independent SHA256 verify | OK=58, MISMATCHES=0 |
+
+### Tests
+
+TC-INF-003-A..N, REG-INF-003-1, REG-INF-003-2, TC-INF-003-BIND — all **PASS** (genuine host/fixture runs).
+
+### Artifact links
+
+- `artifacts/issue-3/run-20261127-inf003-r3/run_manifest.json`
+- `artifacts/issue-3/run-20261127-inf003-r3/unit_test_results.csv`
+- `artifacts/issue-3/run-20261127-inf003-r3/test_summary.md`
+- `artifacts/issue-3/run-20261127-inf003-r3/evidence_sha256.txt`
+- `artifacts/issue-3/run-20261127-inf003-r3/checksum_independent_verify.txt`
+- `artifacts/issue-3/run-20261127-inf003-r3/cto_findings_r3.md`
+
+### Known limitations
+
+- `-SkipGit` is test-only and rejected under `-StrictPreflight`.
+- Synthetic version fixtures are marked `synthetic_fixture=true` and are not real toolchain evidence.
+- Verified preflight does not claim Strategy Tester operational agent readiness.
+- Multiple MT5 installs require explicit `-InstallRoot` under StrictPreflight.

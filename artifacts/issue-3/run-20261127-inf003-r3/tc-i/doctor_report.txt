@@ -1,0 +1,20 @@
+﻿INF-003 EnvDoctor start 2026-11-27T16:47:01.5449317Z mode=inventory_only
+host=WIN-8F5G6TCFF1J user=Administrator
+os=Microsoft Windows NT 10.0.17763.0
+powershell=5.1.17763.9376
+cwd=C:\Project\ai_bot_trade_inf003
+repo_root=C:\Users\ADMINI~1\AppData\Local\Temp\2\inf003-nongit-14368286384343ba80ee1339abe607ca
+output_dir=C:\Project\ai_bot_trade_inf003\artifacts\issue-3\run-20261127-inf003-r3\tc-i
+gates RequireTools=True RequireAgentDirectories=False FailOnBuildMismatch=False ValidateExecutables=False FailOnEmptyVersion=False MinAgentDirectories=1
+override InstallRoot=C:\Program Files\MetaTrader 5
+discovered_install_roots=C:\Program Files\MetaTrader 5;C:\MT5-Cursor-Test
+metaeditor path=C:\Program Files\MetaTrader 5\metaeditor64.exe ver=5.0.0.6230 pe=True identity=True synth=False
+terminal path=C:\Program Files\MetaTrader 5\terminal64.exe ver=5.0.0.6230 pe=True identity=True synth=False
+metatester path=C:\Program Files\MetaTrader 5\metatester64.exe ver=5.0.0.6230 pe=True identity=True synth=False
+git available=True repo=False head= head_valid=False err=not_a_git_repository
+discovered_agent_directories count=20 root=C:\Users\Administrator\AppData\Roaming\MetaQuotes\Tester
+operational_metatester_processes count=0
+operational_readiness_claimed=False operational_agent_ready=False
+install_data_map root=C:\Program Files\MetaTrader 5 mapped=True terminals=D0E8209F77C8CF37AD8BF550E51FF075
+build_consistency consistent=True mismatch=False empty=False versions=5.0.0.6230
+BLOCKED Required Git inspection failed: not_a_git_repository
