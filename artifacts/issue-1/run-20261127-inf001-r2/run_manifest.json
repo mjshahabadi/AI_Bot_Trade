@@ -1,0 +1,26 @@
+{
+  "issue": 1,
+  "task_id": "INF-001",
+  "run_id": "run-20261127-inf001-r2",
+  "branch": "docs/issue-1-inf-001",
+  "baseline_commit": "a428d1cb5a3fc20b0f38fb1bb29653570e3fda2c",
+  "tested_source_commit": "54ac899e89b47ae988986dd7e54888c9158b55bb",
+  "evidence_publication_note": "The commit that adds this directory is later than tested_source_commit and was not executed. The raw log and CSV already name tested_source_commit. No publication SHA is written here, because that commit does not exist until after this file is committed.",
+  "execution_timestamp_utc": "2026-11-27T13:53:29Z",
+  "host": "cursor",
+  "os": "Linux 6.12.113+ x86_64",
+  "powershell": "7.7.0",
+  "worktree": "clean",
+  "exit_code": 0,
+  "test_count": 14,
+  "summary": "PASS",
+  "compiler_build": "N/A",
+  "ex5_hash": "N/A",
+  "compile_reason": "Documentation-only issue. No MQL5 source was changed or compiled.",
+  "strategy_tester": "N/A — issue section 15 forbids Strategy Tester execution.",
+  "prior_run": {
+    "run_id": "run-20261127-inf001",
+    "binding_status": "UNVERIFIED",
+    "reason": "Attempt 2 at 2026-11-27T11:06:34Z finished before any commit. Its manifest used a placeholder instead of a source SHA."
+  }
+}
