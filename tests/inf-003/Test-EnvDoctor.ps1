@@ -475,8 +475,14 @@ else { Add-Result "TC-INF-003-N" "Invalid MinAgentDirectories => explicit valida
 # ---------- TC-INF-003-O MZ-prefixed malformed PE rejected ----------
 $outO = Join-Path $EvidenceDir "tc-o"
 $fxO = New-MzMalformedFixtureDir -Dir (Join-Path $env:TEMP ("inf003-mzmalformed-" + [guid]::NewGuid().ToString("N")))
+# Unique mapping so PE validation is the explicit failure under test (not mapping).
+$termO = Join-Path $env:TEMP ("inf003-o-term-" + [guid]::NewGuid().ToString("N"))
+$termOInst = Join-Path $termO ("O" + [guid]::NewGuid().ToString("N").Substring(0, 31))
+New-Item -ItemType Directory -Force -Path $termOInst | Out-Null
+Set-Content -LiteralPath (Join-Path $termOInst "origin.txt") -Value $fxO.Dir -Encoding ASCII
 $runO = Invoke-DoctorCapture -OutDir $outO -DoctorParams @{
     RepoRoot = $RepoRoot; OutputDir = $outO; InstallRoot = $fxO.Dir
+    TerminalDataRoot = $termO
     ValidateExecutables = $true; RequireTools = $true
     AllowSyntheticVersionFixtures = $true; SkipGit = $true
 }

@@ -223,7 +223,15 @@ function Find-InstallRoots {
 
 function Get-TesterAgents {
     param([string]$RootOverride = "")
-    $testerRoot = if ($RootOverride) { $RootOverride } else { Join-Path $env:APPDATA "MetaQuotes\Tester" }
+    if ($RootOverride) {
+        $testerRoot = $RootOverride
+    }
+    elseif ($env:APPDATA) {
+        $testerRoot = Join-Path $env:APPDATA "MetaQuotes\Tester"
+    }
+    else {
+        $testerRoot = ""
+    }
     $running = @(
         Get-Process -Name "metatester64", "metatester" -ErrorAction SilentlyContinue | ForEach-Object {
             [ordered]@{ name = $_.ProcessName; id = $_.Id; path = $_.Path }
@@ -231,7 +239,7 @@ function Get-TesterAgents {
     )
     $result = [ordered]@{
         root = $testerRoot
-        root_exists = (Test-Path -LiteralPath $testerRoot -PathType Container)
+        root_exists = (($testerRoot -ne "") -and (Test-Path -LiteralPath $testerRoot -PathType Container))
         discovered_agent_directories = @()
         discovered_agent_directory_count = 0
         operational_metatester_processes = $running
@@ -253,9 +261,17 @@ function Get-TesterAgents {
 
 function Get-TerminalInventory {
     param([string]$RootOverride = "")
-    $termRoot = if ($RootOverride) { $RootOverride } else { Join-Path $env:APPDATA "MetaQuotes\Terminal" }
+    if ($RootOverride) {
+        $termRoot = $RootOverride
+    }
+    elseif ($env:APPDATA) {
+        $termRoot = Join-Path $env:APPDATA "MetaQuotes\Terminal"
+    }
+    else {
+        $termRoot = ""
+    }
     $instances = @()
-    if (-not (Test-Path -LiteralPath $termRoot -PathType Container)) {
+    if (($termRoot -eq "") -or (-not (Test-Path -LiteralPath $termRoot -PathType Container))) {
         return [ordered]@{ root = $termRoot; root_exists = $false; instances = @() }
     }
     Get-ChildItem -LiteralPath $termRoot -Directory -ErrorAction SilentlyContinue | ForEach-Object {
@@ -705,7 +721,9 @@ if ($RequireTools -and $overall -ne "FAIL") {
     }
 }
 
-if ($ValidateExecutables -and $overall -ne "FAIL") {
+# Executable/version/build gates accumulate diagnostics even if an earlier FAIL
+# already occurred (e.g. mapping), so PE/structure failures remain explicit (F08).
+if ($ValidateExecutables) {
     foreach ($pair in @(
             @{ Name = "MetaEditor"; Info = $metaInfo },
             @{ Name = "Terminal"; Info = $termInfo },
@@ -723,7 +741,7 @@ if ($ValidateExecutables -and $overall -ne "FAIL") {
     }
 }
 
-if ($FailOnEmptyVersion -and $overall -ne "FAIL") {
+if ($FailOnEmptyVersion) {
     foreach ($pair in @(
             @{ Name = "MetaEditor"; Info = $metaInfo },
             @{ Name = "Terminal"; Info = $termInfo },
@@ -747,7 +765,7 @@ if ($RequireAgentDirectories -and $overall -ne "FAIL") {
     }
 }
 
-if ($FailOnBuildMismatch -and $overall -ne "FAIL") {
+if ($FailOnBuildMismatch) {
     if ($buildConsistency.mismatch) {
         $msg = "MetaEditor/MT5/MetaTester FileVersion mismatch: $($buildConsistency.unique_versions -join ' vs ')"
         Write-DoctorLog "FAIL $msg"; $issues.Add($msg) | Out-Null; $overall = "FAIL"
