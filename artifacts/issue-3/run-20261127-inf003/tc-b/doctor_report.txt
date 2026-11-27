@@ -1,0 +1,16 @@
+﻿INF-003 EnvDoctor start 2026-11-27T15:17:59.5761034Z
+host=WIN-8F5G6TCFF1J user=Administrator
+os=Microsoft Windows NT 10.0.17763.0
+powershell=5.1.17763.9376
+cwd=C:\Project\ai_bot_trade_inf003
+repo_root=C:\Project\ai_bot_trade_inf003
+output_dir=C:\Project\ai_bot_trade_inf003\artifacts\issue-3\run-20261127-inf003\tc-b
+override MetaEditorPath=C:\Program Files\MetaTrader 5\metaeditor64-DOES-NOT-EXIST.exe
+ERROR MetaEditorPath override not found: C:\Program Files\MetaTrader 5\metaeditor64-DOES-NOT-EXIST.exe
+metaeditor=NOT_FOUND
+terminal=NOT_FOUND
+metatester=NOT_FOUND
+git available=True path=C:\Program Files\Git\cmd\git.exe version=git version 2.51.2.windows.1 head=936f9c0851cc85650d8602a5441146fadc22a512
+tester_agents count=20 root=C:\Users\Administrator\AppData\Roaming\MetaQuotes\Tester
+terminal_instances count=4
+disk_c free_gb=29.39

@@ -1,0 +1,20 @@
+﻿INF-003 EnvDoctor start 2026-11-27T15:18:00.9590629Z
+host=WIN-8F5G6TCFF1J user=Administrator
+os=Microsoft Windows NT 10.0.17763.0
+powershell=5.1.17763.9376
+cwd=C:\Project\ai_bot_trade_inf003
+repo_root=C:\Project\ai_bot_trade_inf003
+output_dir=C:\Project\ai_bot_trade_inf003\artifacts\issue-3\run-20261127-inf003\tc-c
+override InstallRoot=C:\Users\ADMINI~1\AppData\Local\Temp\2\INF-003 Env Doctor ????\MetaTrader 5
+install_roots=C:\Users\ADMINI~1\AppData\Local\Temp\2\INF-003 Env Doctor ????\MetaTrader 5
+metaeditor path=C:\Users\Administrator\AppData\Local\Temp\2\INF-003 Env Doctor ????\MetaTrader 5\metaeditor64.exe version=5.0.0.6230 readable=True
+terminal path=C:\Users\Administrator\AppData\Local\Temp\2\INF-003 Env Doctor ????\MetaTrader 5\terminal64.exe version=5.0.0.6230 readable=True
+metatester path=C:\Users\Administrator\AppData\Local\Temp\2\INF-003 Env Doctor ????\MetaTrader 5\metatester64.exe version=5.0.0.6230 readable=True
+git=SKIPPED
+tester_agents count=20 root=C:\Users\Administrator\AppData\Roaming\MetaQuotes\Tester
+terminal_instances count=4
+disk_c free_gb=29.15
+wrote C:\Project\ai_bot_trade_inf003\artifacts\issue-3\run-20261127-inf003\tc-c\doctor_report.json
+wrote C:\Project\ai_bot_trade_inf003\artifacts\issue-3\run-20261127-inf003\tc-c\doctor_report.txt
+overall_status=PASS
+

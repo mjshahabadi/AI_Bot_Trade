@@ -1,0 +1,17 @@
+﻿INF-003 Test-EnvDoctor
+timestamp_utc=2026-11-27T15:17:56.2211305Z
+tested_sha=936f9c0851cc85650d8602a5441146fadc22a512
+branch=test/issue-3-inf-003-env-doctor
+host=WIN-8F5G6TCFF1J
+powershell=5.1.17763.9376
+evidence_dir=C:\Project\ai_bot_trade_inf003\artifacts\issue-3\run-20261127-inf003
+git_status_porcelain<<
+
+>>
+
+RESULTS
+TC-INF-003-A|PASS|exit=0 meta=C:\Program Files\MetaTrader 5\metaeditor64.exe ver=5.0.0.6230 term=C:\Program Files\MetaTrader 5\terminal64.exe git=C:\Program Files\Git\cmd\git.exe
+TC-INF-003-B|PASS|exit=1 precise_error=true path=C:\Program Files\MetaTrader 5\metaeditor64-DOES-NOT-EXIST.exe
+TC-INF-003-C|PASS|handled spaced/unicode path exit=0 path=C:\Users\Administrator\AppData\Local\Temp\2\INF-003 Env Doctor Тест\MetaTrader 5\metaeditor64.exe mode=copy
+REG-INF-003-1|PASS|mq5/mqh/ex5 count=0 under repo worktree
+TC-INF-003-BIND|PASS|tested_sha=936f9c0851cc85650d8602a5441146fadc22a512 branch=test/issue-3-inf-003-env-doctor porcelain_empty=True
