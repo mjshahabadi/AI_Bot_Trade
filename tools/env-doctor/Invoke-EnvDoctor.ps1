@@ -117,12 +117,16 @@ function Find-InstallRoots {
         "HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\*"
     )
     foreach ($pattern in $uninstPaths) {
-        Get-ItemProperty -Path $pattern -ErrorAction SilentlyContinue |
-            Where-Object { $_.DisplayName -match "MetaTrader 5" -and $_.InstallLocation } |
-            ForEach-Object {
-                $loc = $_.InstallLocation.TrimEnd("\", "/")
+        Get-ItemProperty -Path $pattern -ErrorAction SilentlyContinue | ForEach-Object {
+            $display = $null
+            $install = $null
+            if ($_.PSObject.Properties.Name -contains "DisplayName") { $display = $_.DisplayName }
+            if ($_.PSObject.Properties.Name -contains "InstallLocation") { $install = $_.InstallLocation }
+            if ($display -and ($display -match "MetaTrader 5") -and $install) {
+                $loc = $install.TrimEnd("\", "/")
                 if ($loc) { $candidates += $loc }
             }
+        }
     }
 
     Get-Process -Name "terminal64", "metaeditor64", "metatester64" -ErrorAction SilentlyContinue |

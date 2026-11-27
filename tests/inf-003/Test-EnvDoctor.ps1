@@ -35,18 +35,50 @@ function Add-Result {
 
 function Invoke-DoctorCapture {
     param(
-        [string[]]$ArgumentList,
+        [hashtable]$DoctorParams,
         [string]$OutDir
     )
     New-Item -ItemType Directory -Force -Path $OutDir | Out-Null
     $doctor = Join-Path $RepoRoot "tools\env-doctor\Invoke-EnvDoctor.ps1"
     $stdoutPath = Join-Path $OutDir "stdout.log"
     $stderrPath = Join-Path $OutDir "stderr.log"
-    $argLine = @("-NoProfile", "-ExecutionPolicy", "Bypass", "-File", $doctor) + $ArgumentList
-    $p = Start-Process -FilePath "powershell.exe" -ArgumentList $argLine -Wait -PassThru -NoNewWindow `
-        -RedirectStandardOutput $stdoutPath -RedirectStandardError $stderrPath
+
+    # Build a quoted argument string. Start-Process array joining breaks unquoted paths with spaces.
+    $argParts = New-Object System.Collections.Generic.List[string]
+    $argParts.Add("-NoProfile") | Out-Null
+    $argParts.Add("-ExecutionPolicy Bypass") | Out-Null
+    $argParts.Add("-File `"$doctor`"") | Out-Null
+    foreach ($key in $DoctorParams.Keys) {
+        $val = $DoctorParams[$key]
+        if ($val -is [switch] -or $val -is [bool]) {
+            if ($val) { $argParts.Add("-$key") | Out-Null }
+        }
+        else {
+            $argParts.Add("-$key `"$([string]$val)`"") | Out-Null
+        }
+    }
+    $argString = ($argParts -join " ")
+
+    $psi = New-Object System.Diagnostics.ProcessStartInfo
+    $psi.FileName = "powershell.exe"
+    $psi.Arguments = $argString
+    $psi.UseShellExecute = $false
+    $psi.RedirectStandardOutput = $true
+    $psi.RedirectStandardError = $true
+    $psi.CreateNoWindow = $true
+    $psi.WorkingDirectory = $RepoRoot
+
+    $proc = New-Object System.Diagnostics.Process
+    $proc.StartInfo = $psi
+    [void]$proc.Start()
+    $stdout = $proc.StandardOutput.ReadToEnd()
+    $stderr = $proc.StandardError.ReadToEnd()
+    $proc.WaitForExit()
+    Set-Content -LiteralPath $stdoutPath -Value $stdout -Encoding UTF8
+    Set-Content -LiteralPath $stderrPath -Value $stderr -Encoding UTF8
+
     return [pscustomobject]@{
-        ExitCode   = $p.ExitCode
+        ExitCode   = $proc.ExitCode
         StdOutPath = $stdoutPath
         StdErrPath = $stderrPath
         JsonPath   = (Join-Path $OutDir "doctor_report.json")
@@ -81,11 +113,11 @@ Write-Output "evidence_dir=$EvidenceDir"
 
 # ---------- TC-INF-003-A: real host run ----------
 $outA = Join-Path $EvidenceDir "tc-a"
-$runA = Invoke-DoctorCapture -OutDir $outA -ArgumentList @(
-    "-RepoRoot", $RepoRoot,
-    "-OutputDir", $outA,
-    "-RequireTools"
-)
+$runA = Invoke-DoctorCapture -OutDir $outA -DoctorParams @{
+    RepoRoot     = $RepoRoot
+    OutputDir    = $outA
+    RequireTools = $true
+}
 $jsonA = $null
 if (Test-Path -LiteralPath $runA.JsonPath) {
     $jsonA = Get-Content -LiteralPath $runA.JsonPath -Raw -Encoding UTF8 | ConvertFrom-Json
@@ -125,12 +157,12 @@ else {
 # ---------- TC-INF-003-B: invalid MetaEditor path ----------
 $outB = Join-Path $EvidenceDir "tc-b"
 $badPath = "C:\Program Files\MetaTrader 5\metaeditor64-DOES-NOT-EXIST.exe"
-$runB = Invoke-DoctorCapture -OutDir $outB -ArgumentList @(
-    "-RepoRoot", $RepoRoot,
-    "-OutputDir", $outB,
-    "-MetaEditorPath", $badPath,
-    "-RequireTools"
-)
+$runB = Invoke-DoctorCapture -OutDir $outB -DoctorParams @{
+    RepoRoot        = $RepoRoot
+    OutputDir       = $outB
+    MetaEditorPath  = $badPath
+    RequireTools    = $true
+}
 $stdoutB = ""
 if (Test-Path -LiteralPath $runB.StdOutPath) {
     $stdoutB = Get-Content -LiteralPath $runB.StdOutPath -Raw -Encoding UTF8
@@ -191,13 +223,13 @@ else {
     $boundaryMode = "placeholder"
 }
 
-$runC = Invoke-DoctorCapture -OutDir $outC -ArgumentList @(
-    "-RepoRoot", $RepoRoot,
-    "-OutputDir", $outC,
-    "-InstallRoot", $spaceDir,
-    "-RequireTools",
-    "-SkipGit"
-)
+$runC = Invoke-DoctorCapture -OutDir $outC -DoctorParams @{
+    RepoRoot     = $RepoRoot
+    OutputDir    = $outC
+    InstallRoot  = $spaceDir
+    RequireTools = $true
+    SkipGit      = $true
+}
 $jsonC = $null
 if (Test-Path -LiteralPath $runC.JsonPath) {
     $jsonC = Get-Content -LiteralPath $runC.JsonPath -Raw -Encoding UTF8 | ConvertFrom-Json
@@ -230,8 +262,8 @@ else {
 
 # ---------- Regression: no trading sources introduced by these scripts ----------
 $tradingHits = @()
-Get-ChildItem -LiteralPath $RepoRoot -Recurse -File -Include *.mq5, *.mqh, *.ex5 -ErrorAction SilentlyContinue |
-    Where-Object { $_.FullName -notmatch '\\AI_Bot_Trade\\' } |
+Get-ChildItem -LiteralPath $RepoRoot -Recurse -File -ErrorAction SilentlyContinue |
+    Where-Object { $_.Extension -match '^\.(mq5|mqh|ex5)$' } |
     ForEach-Object { $tradingHits += $_.FullName }
 if ($tradingHits.Count -eq 0) {
     Add-Result "REG-INF-003-1" `
