@@ -26,8 +26,8 @@ No trading rule is created, changed, or implied. No live orders. No Strategy Tes
 | Field | Value |
 |---|---|
 | Run ID | `run-20261127-inf003-r4` |
-| Tested SHA | _(filled after source commit + Windows suite)_ |
-| Evidence publication SHA | _(filled after evidence commit)_ |
+| Source / intended tested SHA | `045749ff2f964b9831663b242c830aa6d75b4d27` |
+| Evidence publication SHA | PENDING — Windows host suite not yet executed from this managed cloud runtime |
 | Branch | `test/issue-3-inf-003-env-doctor` |
 | PR | https://github.com/mjshahabadi/AI_Bot_Trade/pull/15 |
 | Acceptance | PENDING independent GPT CTO review — **not approved** |
