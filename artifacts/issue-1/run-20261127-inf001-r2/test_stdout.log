@@ -1,0 +1,18 @@
+TC-INF-001-A1 expected=exactly one ISSUE_TEMPLATE markdown named ai_task.md actual=count=1 name=ai_task.md status=PASS
+TC-INF-001-A2 expected=one YAML front matter and sections 1-25 actual=front=2 nameKeys=1 missing=none status=PASS
+TC-INF-001-B1-.github/PROJECT_CHARTER.md expected=non-empty document actual=bytes=4237 status=PASS
+TC-INF-001-B1-.github/TEST_POLICY.md expected=non-empty document actual=bytes=3264 status=PASS
+TC-INF-001-B1-.github/DEFINITION_OF_DONE.md expected=non-empty document actual=bytes=2279 status=PASS
+TC-INF-001-B1-docs/RTM.md expected=non-empty document actual=bytes=1590 status=PASS
+TC-INF-001-B1-docs/requirements/REQ-INF-001.md expected=non-empty document actual=bytes=777 status=PASS
+TC-INF-001-B2 expected=cross-consistent proposal, trading freeze, single accepter actual=required phrases present status=PASS
+TC-INF-001-B3 expected=identical governance baseline recorded actual=C7ABA1687F898A7523697DEFCC93E9F475F4CE8C8621861749BE870AB7DA108E status=PASS
+TC-INF-001-C-valid-control.md expected=READY actual=READY status=PASS
+TC-INF-001-C-conflict-authority.md expected=BLOCKED actual=BLOCKED status=PASS
+TC-INF-001-C-incomplete-ac.md expected=BLOCKED actual=BLOCKED status=PASS
+TC-INF-001-C-never-ready expected=BLOCKED fixtures are not READY actual=conflict=BLOCKED incomplete=BLOCKED status=PASS
+TC-INF-001-BIND expected=clean worktree at a full source commit actual=worktree=clean source_commit=54ac899e89b47ae988986dd7e54888c9158b55bb status=PASS
+timestamp_utc=2026-11-27T13:53:29Z
+source_commit=54ac899e89b47ae988986dd7e54888c9158b55bb
+worktree=clean
+failure_count=0

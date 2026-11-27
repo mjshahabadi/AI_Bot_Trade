@@ -1,13 +1,4 @@
 ---
-name: ai_task.md
-about: Describe this issue template's purpose here.
-title: ''
-labels: ''
-assignees: ''
-
----
-
----
 name: AI_Bot_Trade Standard Task
 about: Standard task contract between GPT CTO and Cursor AI Developer
 title: "[TYPE][P?][PHASE-??] Short Description"
