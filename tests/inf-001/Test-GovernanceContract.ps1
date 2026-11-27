@@ -161,9 +161,33 @@ if ($conflictActual -eq "READY" -or $incompleteActual -eq "READY") {
 }
 
 $stamp = (Get-Date).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssZ")
+$sourceCommit = "UNVERIFIED"
+$worktree = "UNVERIFIED"
+try {
+    $sourceCommit = (& git -C $RepoRoot rev-parse HEAD).Trim()
+    $porcelain = & git -C $RepoRoot status --porcelain
+    if ([string]::IsNullOrWhiteSpace(($porcelain | Out-String))) {
+        $worktree = "clean"
+    } else {
+        $worktree = "dirty"
+    }
+} catch {
+    $sourceCommit = "UNVERIFIED"
+    $worktree = "UNVERIFIED"
+}
+if ($EvidenceDir -ne "") {
+    $bindOk = ($worktree -eq "clean" -and $sourceCommit -match '^[0-9a-fA-F]{40}$')
+    if ($bindOk) {
+        Add-Result "TC-INF-001-BIND" "clean worktree at a full source commit" "worktree=$worktree source_commit=$sourceCommit" "PASS"
+    } else {
+        Add-Result "TC-INF-001-BIND" "clean worktree at a full source commit" "worktree=$worktree source_commit=$sourceCommit" "FAIL"
+    }
+}
 Write-Output "INF-001 governance contract"
 Write-Output "timestamp_utc=$stamp"
 Write-Output "repo=$RepoRoot"
+Write-Output "source_commit=$sourceCommit"
+Write-Output "worktree=$worktree"
 foreach ($row in $results) {
     Write-Output ("{0} expected={1} actual={2} status={3}" -f $row.TestId, $row.Expected, $row.Actual, $row.Status)
 }
@@ -174,6 +198,8 @@ if ($EvidenceDir -ne "") {
     $logPath = Join-Path $EvidenceDir "test_stdout.log"
     $results | ForEach-Object { "{0} expected={1} actual={2} status={3}" -f $_.TestId, $_.Expected, $_.Actual, $_.Status } | Set-Content -Path $logPath -Encoding UTF8
     Add-Content -Path $logPath -Encoding UTF8 -Value "timestamp_utc=$stamp"
+    Add-Content -Path $logPath -Encoding UTF8 -Value "source_commit=$sourceCommit"
+    Add-Content -Path $logPath -Encoding UTF8 -Value "worktree=$worktree"
     Add-Content -Path $logPath -Encoding UTF8 -Value "failure_count=$($failures.Count)"
 }
 
