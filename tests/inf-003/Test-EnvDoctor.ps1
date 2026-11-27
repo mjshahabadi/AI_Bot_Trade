@@ -191,6 +191,7 @@ if (-not $cleanWorktree) {
 }
 
 New-Item -ItemType Directory -Force -Path $EvidenceDir | Out-Null
+$EvidenceDir = (Resolve-Path -LiteralPath $EvidenceDir).Path
 Write-Output "INF-003 tests start $($started.ToString('o'))"
 Write-Output "tested_sha=$testedSha branch=$branch clean=$cleanWorktree evidence=$EvidenceDir"
 
