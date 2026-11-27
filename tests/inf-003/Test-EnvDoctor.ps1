@@ -61,8 +61,14 @@ function Invoke-DoctorCapture {
             $argParts.Add("-$key `"$([string]$val)`"") | Out-Null
         }
     }
+    $psExe = $null
+    foreach ($cand in @("powershell.exe", "powershell", "pwsh")) {
+        $cmd = Get-Command $cand -ErrorAction SilentlyContinue
+        if ($cmd) { $psExe = $cmd.Source; break }
+    }
+    if (-not $psExe) { throw "No PowerShell executable found (powershell.exe/pwsh)" }
     $psi = New-Object System.Diagnostics.ProcessStartInfo
-    $psi.FileName = "powershell.exe"
+    $psi.FileName = $psExe
     $psi.Arguments = ($argParts -join " ")
     $psi.UseShellExecute = $false
     $psi.RedirectStandardOutput = $true
@@ -316,22 +322,33 @@ else { Add-Result "TC-INF-003-D" "Missing Agent directories => BLOCKED" ("exit={
 
 # ---------- TC-INF-003-E inaccessible ----------
 $outE = Join-Path $EvidenceDir "tc-e"
-$denyDir = Join-Path $env:TEMP ("inf003-deny-" + [guid]::NewGuid().ToString("N"))
-New-Item -ItemType Directory -Force -Path $denyDir | Out-Null
-$denyFile = Join-Path $denyDir "metaeditor64.exe"
-Set-Content -LiteralPath $denyFile -Value "x" -Encoding ASCII
-$acl = Get-Acl $denyFile
-$denyRule = New-Object System.Security.AccessControl.FileSystemAccessRule($env:USERNAME, "Read", "Deny")
-$acl.AddAccessRule($denyRule); Set-Acl $denyFile $acl
-$runE = Invoke-DoctorCapture -OutDir $outE -DoctorParams @{
-    RepoRoot = $RepoRoot; OutputDir = $outE; MetaEditorPath = $denyFile; RequireTools = $true; SkipGit = $true
+$isWindows = $false
+try {
+    if ($PSVersionTable.PSVersion.Major -ge 6) { $isWindows = [bool]$IsWindows }
+    else { $isWindows = ($env:OS -match 'Windows') }
+} catch { $isWindows = ($env:OS -match 'Windows') }
+if (-not $isWindows) {
+    Add-Result "TC-INF-003-E" "Inaccessible path => nonzero actionable failure" "windows_acl_apis_unavailable" "BLOCKED"
 }
-$stdoutE = Get-Content $runE.StdOutPath -Raw -Encoding UTF8
-try { $acl2 = Get-Acl $denyFile; [void]$acl2.RemoveAccessRule($denyRule); Set-Acl $denyFile $acl2 } catch {}
-if ($runE.ExitCode -ne 0 -and $stdoutE -match "not readable") {
-    Add-Result "TC-INF-003-E" "Inaccessible path => nonzero actionable failure" ("exit={0}" -f $runE.ExitCode) "PASS"
+else {
+    $denyDir = Join-Path $env:TEMP ("inf003-deny-" + [guid]::NewGuid().ToString("N"))
+    New-Item -ItemType Directory -Force -Path $denyDir | Out-Null
+    $denyFile = Join-Path $denyDir "metaeditor64.exe"
+    Set-Content -LiteralPath $denyFile -Value "x" -Encoding ASCII
+    $acl = Get-Acl $denyFile
+    $denyUser = if ($env:USERNAME) { $env:USERNAME } else { "Everyone" }
+    $denyRule = New-Object System.Security.AccessControl.FileSystemAccessRule($denyUser, "Read", "Deny")
+    $acl.AddAccessRule($denyRule); Set-Acl $denyFile $acl
+    $runE = Invoke-DoctorCapture -OutDir $outE -DoctorParams @{
+        RepoRoot = $RepoRoot; OutputDir = $outE; MetaEditorPath = $denyFile; RequireTools = $true; SkipGit = $true
+    }
+    $stdoutE = Get-Content $runE.StdOutPath -Raw -Encoding UTF8
+    try { $acl2 = Get-Acl $denyFile; [void]$acl2.RemoveAccessRule($denyRule); Set-Acl $denyFile $acl2 } catch {}
+    if ($runE.ExitCode -ne 0 -and $stdoutE -match "not readable") {
+        Add-Result "TC-INF-003-E" "Inaccessible path => nonzero actionable failure" ("exit={0}" -f $runE.ExitCode) "PASS"
+    }
+    else { Add-Result "TC-INF-003-E" "Inaccessible path => nonzero actionable failure" ("exit={0}" -f $runE.ExitCode) "FAIL" }
 }
-else { Add-Result "TC-INF-003-E" "Inaccessible path => nonzero actionable failure" ("exit={0}" -f $runE.ExitCode) "FAIL" }
 
 # ---------- TC-INF-003-F empty version via real PE without fixture (or synth empty) ----------
 $outF = Join-Path $EvidenceDir "tc-f"
@@ -495,11 +512,13 @@ else { Add-Result "TC-INF-003-P" "Strict preflight with synthetic fixtures => no
 
 # ---------- TC-INF-003-Q missing data-directory mapping ----------
 $outQ = Join-Path $EvidenceDir "tc-q"
+$fxQ = New-ToolFixtureDir -Dir (Join-Path $env:TEMP ("inf003-q-install-" + [guid]::NewGuid().ToString("N"))) -EditorVer "5.0.0.6230" -TermVer "5.0.0.6230" -TesterVer "5.0.0.6230"
 $emptyTermQ = Join-Path $env:TEMP ("inf003-q-term-" + [guid]::NewGuid().ToString("N"))
 New-Item -ItemType Directory -Force -Path $emptyTermQ | Out-Null
 $runQ = Invoke-DoctorCapture -OutDir $outQ -DoctorParams @{
-    RepoRoot = $RepoRoot; OutputDir = $outQ; InstallRoot = $realInstall
-    TerminalDataRoot = $emptyTermQ; RequireTools = $true; SkipGit = $true
+    RepoRoot = $RepoRoot; OutputDir = $outQ; InstallRoot = $fxQ.Dir
+    TerminalDataRoot = $emptyTermQ; RequireTools = $true
+    AllowSyntheticVersionFixtures = $true; SkipGit = $true
 }
 $jsonQ = $null
 if (Test-Path $runQ.JsonPath) { $jsonQ = Get-Content $runQ.JsonPath -Raw -Encoding UTF8 | ConvertFrom-Json }
@@ -513,6 +532,7 @@ else { Add-Result "TC-INF-003-Q" "Missing selected-install data-directory mappin
 
 # ---------- TC-INF-003-R ambiguous data-directory mapping ----------
 $outR = Join-Path $EvidenceDir "tc-r"
+$fxR = New-ToolFixtureDir -Dir (Join-Path $env:TEMP ("inf003-r-install-" + [guid]::NewGuid().ToString("N"))) -EditorVer "5.0.0.6230" -TermVer "5.0.0.6230" -TesterVer "5.0.0.6230"
 $termRootR = Join-Path $env:TEMP ("inf003-r-term-" + [guid]::NewGuid().ToString("N"))
 $id1 = "AAAA1111BBBB2222CCCC3333DDDD4444"
 $id2 = "EEEE5555FFFF6666AAAA7777BBBB8888"
@@ -520,11 +540,13 @@ $dir1 = Join-Path $termRootR $id1
 $dir2 = Join-Path $termRootR $id2
 New-Item -ItemType Directory -Force -Path $dir1 | Out-Null
 New-Item -ItemType Directory -Force -Path $dir2 | Out-Null
-Set-Content -LiteralPath (Join-Path $dir1 "origin.txt") -Value $realInstall -Encoding ASCII
-Set-Content -LiteralPath (Join-Path $dir2 "origin.txt") -Value $realInstall -Encoding ASCII
+# Both origins point at the same selected install => ambiguous; must not pick first match.
+Set-Content -LiteralPath (Join-Path $dir1 "origin.txt") -Value $fxR.Dir -Encoding ASCII
+Set-Content -LiteralPath (Join-Path $dir2 "origin.txt") -Value $fxR.Dir -Encoding ASCII
 $runR = Invoke-DoctorCapture -OutDir $outR -DoctorParams @{
-    RepoRoot = $RepoRoot; OutputDir = $outR; InstallRoot = $realInstall
-    TerminalDataRoot = $termRootR; RequireTools = $true; SkipGit = $true
+    RepoRoot = $RepoRoot; OutputDir = $outR; InstallRoot = $fxR.Dir
+    TerminalDataRoot = $termRootR; RequireTools = $true
+    AllowSyntheticVersionFixtures = $true; SkipGit = $true
 }
 $jsonR = $null
 if (Test-Path $runR.JsonPath) { $jsonR = Get-Content $runR.JsonPath -Raw -Encoding UTF8 | ConvertFrom-Json }
@@ -553,8 +575,14 @@ try {
     $wtStatus = Invoke-GitChecked -RepoPath $wtPath -GitArgs @("status", "--porcelain=v1")
     if ([string]::IsNullOrWhiteSpace($wtStatus.Output)) { throw "expected dirty worktree but porcelain empty" }
     $probeScript = Join-Path $wtPath "tests\inf-003\Test-EnvDoctor.ps1"
+    $psExe = $null
+    foreach ($cand in @("powershell.exe", "powershell", "pwsh")) {
+        $cmd = Get-Command $cand -ErrorAction SilentlyContinue
+        if ($cmd) { $psExe = $cmd.Source; break }
+    }
+    if (-not $psExe) { throw "No PowerShell executable found for dirty-tree probe" }
     $psi = New-Object System.Diagnostics.ProcessStartInfo
-    $psi.FileName = "powershell.exe"
+    $psi.FileName = $psExe
     $psi.Arguments = "-NoProfile -ExecutionPolicy Bypass -File `"$probeScript`" -RepoRoot `"$wtPath`" -EvidenceDir `"$wtEvidence`" -DirtyTreeProbeOnly"
     $psi.UseShellExecute = $false
     $psi.RedirectStandardOutput = $true
