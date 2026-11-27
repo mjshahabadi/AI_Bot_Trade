@@ -8,13 +8,13 @@
 | Baseline SHA | a428d1cb5a3fc20b0f38fb1bb29653570e3fda2c |
 | Authority effect | None. PROPOSED is not approval. |
 
-INF-001 starts the matrix. Only REQ-INF-001 is proposed here. Later rows are an index of open issues so identifiers stay unique. Their bodies were not ratified by this change.
+INF-001 starts the matrix. REQ-INF-001 remains PROPOSED pending GPT CTO acceptance. REQ-INF-003 received a **scoped** Product Owner approval on 2026-11-27 for Issue #3 only; that approval does not ratify INF-001 or other rows. Remaining rows are an index of open issues so identifiers stay unique.
 
 | Requirement | Rule | Issue | This change | Approval | Authority effect |
 |---|---|---|---|---|---|
 | REQ-INF-001 | RULE-GOV-001 | #1 | Charter, Test Policy, DoD, canonical template, this RTM | PROPOSED pending GPT CTO acceptance | None until acceptance |
 | REQ-INF-002 | RULE-GOV-002 | #2 | Not modified | NOT APPROVED | None |
-| REQ-INF-003 | RULE-ENV-001 | #3 | Not modified | NOT APPROVED | None |
+| REQ-INF-003 | RULE-ENV-001 | #3 | Env doctor + TC-INF-003-A/B/C (INF-003 scoped) | APPROVED scoped by Product Owner 2026-11-27; does NOT ratify INF-001 | Scoped execution authority for Issue #3 only |
 | REQ-INF-004 | Not read | #4 | Not modified | NOT APPROVED | None |
 | REQ-INF-005 | Not read | #5 | Not modified | NOT APPROVED | None |
 | REQ-INF-006 | Not read | #6 | Not modified | NOT APPROVED | None |
