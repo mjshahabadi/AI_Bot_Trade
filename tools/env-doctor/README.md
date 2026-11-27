@@ -22,7 +22,13 @@ Exit code `0` means required tools were found and readable. Nonzero means `FAIL`
 | `-TerminalPath` | Absolute path to `terminal64.exe` |
 | `-InstallRoot` | Install directory containing the MT5 executables |
 | `-RequireTools` | Fail closed when Git/MetaEditor/terminal/metatester are missing |
+| `-RequireAgentDirectories` | Fail closed when discovered `Agent-*` dirs are below `-MinAgentDirectories` |
+| `-MinAgentDirectories` | Minimum discovered agent directories (default 1) |
+| `-TesterRoot` | Override Tester inventory root (tests only) |
+| `-FailOnBuildMismatch` | FAIL when MetaEditor/terminal/metatester FileVersion values differ |
 | `-SkipGit` | Skip git inspection (test helpers only) |
+
+Discovered `Agent-*` directories are filesystem inventory only. This tool does **not** claim operational Strategy Tester agent readiness from directory presence.
 
 ## Tests
 

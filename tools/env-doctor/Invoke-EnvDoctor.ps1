@@ -27,6 +27,19 @@
 
 .PARAMETER SkipGit
   Skip git inspection (tests only).
+
+.PARAMETER TesterRoot
+  Optional override for MetaQuotes Tester root (tests only). Defaults to %APPDATA%\MetaQuotes\Tester.
+
+.PARAMETER MinAgentDirectories
+  Minimum discovered Agent-* directories required when -RequireAgentDirectories is set.
+
+.PARAMETER RequireAgentDirectories
+  Fail closed (BLOCKED) when discovered Agent-* directory count is below MinAgentDirectories.
+  Discovered directories are NOT proof that agents are operational.
+
+.PARAMETER FailOnBuildMismatch
+  When set, differing MetaEditor/terminal/metatester FileVersion values produce FAIL.
 #>
 [CmdletBinding()]
 param(
@@ -35,7 +48,11 @@ param(
     [string]$MetaEditorPath = "",
     [string]$TerminalPath = "",
     [string]$InstallRoot = "",
+    [string]$TesterRoot = "",
+    [int]$MinAgentDirectories = 1,
     [switch]$RequireTools,
+    [switch]$RequireAgentDirectories,
+    [switch]$FailOnBuildMismatch,
     [switch]$SkipGit
 )
 
@@ -164,20 +181,96 @@ function Resolve-ToolPath {
 }
 
 function Get-TesterAgents {
-    $testerRoot = Join-Path $env:APPDATA "MetaQuotes\Tester"
+    param([string]$RootOverride = "")
+    $testerRoot = if ($RootOverride) { $RootOverride } else { Join-Path $env:APPDATA "MetaQuotes\Tester" }
+    $runningAgents = @(
+        Get-Process -Name "metatester64", "metatester" -ErrorAction SilentlyContinue |
+            ForEach-Object {
+                [ordered]@{
+                    name = $_.ProcessName
+                    id   = $_.Id
+                    path = $_.Path
+                }
+            }
+    )
     $result = [ordered]@{
-        root                 = $testerRoot
-        root_exists          = (Test-Path -LiteralPath $testerRoot -PathType Container)
-        agent_directory_count = 0
-        agent_directories    = @()
+        root                      = $testerRoot
+        root_exists               = (Test-Path -LiteralPath $testerRoot -PathType Container)
+        discovered_agent_directories = @()
+        discovered_agent_directory_count = 0
+        operational_metatester_processes = $runningAgents
+        operational_metatester_process_count = $runningAgents.Count
+        operational_readiness_claimed = $false
+        classification_note       = "Discovered Agent-* directories are filesystem inventory only. Operational readiness requires running metatester process evidence and is not claimed from directory presence alone."
+        # Compatibility aliases used by earlier INF-003 evidence readers:
+        agent_directory_count     = 0
+        agent_directories         = @()
     }
     if (-not $result.root_exists) {
         return $result
     }
     $agents = @(Get-ChildItem -LiteralPath $testerRoot -Recurse -Directory -Filter "Agent*" -ErrorAction SilentlyContinue)
-    $result.agent_directory_count = $agents.Count
-    $result.agent_directories = @($agents | ForEach-Object { $_.FullName })
+    $result.discovered_agent_directories = @($agents | ForEach-Object { $_.FullName })
+    $result.discovered_agent_directory_count = $agents.Count
+    $result.agent_directories = $result.discovered_agent_directories
+    $result.agent_directory_count = $result.discovered_agent_directory_count
     return $result
+}
+
+function Get-InstallDataMapping {
+    param(
+        [string[]]$InstallRoots,
+        [object]$TerminalData
+    )
+    $maps = @()
+    foreach ($root in $InstallRoots) {
+        $normRoot = $root.TrimEnd("\", "/")
+        $matches = @()
+        if ($TerminalData -and $TerminalData.instances) {
+            foreach ($inst in @($TerminalData.instances)) {
+                if ($inst.origin -and ($inst.origin.TrimEnd("\", "/") -ieq $normRoot)) {
+                    $matches += [ordered]@{
+                        terminal_id = $inst.id
+                        data_path   = $inst.path
+                        origin      = $inst.origin
+                    }
+                }
+            }
+        }
+        $maps += [ordered]@{
+            install_root        = $normRoot
+            matched_terminal_ids = @($matches | ForEach-Object { $_.terminal_id })
+            matches             = $matches
+            mapped              = ($matches.Count -gt 0)
+        }
+    }
+    return $maps
+}
+
+function Get-BuildConsistency {
+    param(
+        $MetaInfo,
+        $TermInfo,
+        $TesterInfo
+    )
+    $versions = @()
+    foreach ($pair in @(
+            @{ Name = "metaeditor"; Info = $MetaInfo },
+            @{ Name = "terminal"; Info = $TermInfo },
+            @{ Name = "metatester"; Info = $TesterInfo }
+        )) {
+        if ($pair.Info -and $pair.Info.exists) {
+            $ver = if ($pair.Info.file_version) { [string]$pair.Info.file_version } else { "EMPTY" }
+            $versions += [ordered]@{ tool = $pair.Name; file_version = $ver }
+        }
+    }
+    $unique = @($versions | ForEach-Object { $_.file_version } | Select-Object -Unique)
+    return [ordered]@{
+        versions_recorded = $versions
+        unique_versions   = $unique
+        consistent        = (($unique.Count -le 1) -and ($versions.Count -gt 0))
+        mismatch          = ($unique.Count -gt 1)
+    }
 }
 
 function Get-TerminalInventory {
@@ -384,11 +477,21 @@ else {
     Write-DoctorLog "git=SKIPPED"
 }
 
-$agents = Get-TesterAgents
-Write-DoctorLog ("tester_agents count={0} root={1}" -f $agents.agent_directory_count, $agents.root)
+$agents = Get-TesterAgents -RootOverride $TesterRoot
+Write-DoctorLog ("discovered_agent_directories count={0} root={1}" -f $agents.discovered_agent_directory_count, $agents.root)
+Write-DoctorLog ("operational_metatester_processes count={0}" -f $agents.operational_metatester_process_count)
+Write-DoctorLog ("operational_readiness_claimed={0}" -f $agents.operational_readiness_claimed)
 
 $terminals = Get-TerminalInventory
 Write-DoctorLog ("terminal_instances count={0}" -f @($terminals.instances).Count)
+
+$installDataMap = Get-InstallDataMapping -InstallRoots $roots -TerminalData $terminals
+foreach ($m in $installDataMap) {
+    Write-DoctorLog ("install_data_map root={0} mapped={1} terminals={2}" -f $m.install_root, $m.mapped, (($m.matched_terminal_ids -join ",")))
+}
+
+$buildConsistency = Get-BuildConsistency -MetaInfo $metaInfo -TermInfo $termInfo -TesterInfo $testerInfo
+Write-DoctorLog ("build_consistency consistent={0} versions={1}" -f $buildConsistency.consistent, (($buildConsistency.unique_versions -join ",")))
 
 $disk = Get-DiskInfo
 Write-DoctorLog ("disk_c free_gb={0}" -f $disk.free_gb)
@@ -422,8 +525,32 @@ if ($RequireTools -and $overall -ne "FAIL") {
     }
 }
 
+# Fail-closed for missing discovered agent directories (not operational claim)
+if ($RequireAgentDirectories -and $overall -ne "FAIL") {
+    if (-not $agents.root_exists) {
+        $msg = "Tester root missing or unavailable: $($agents.root)"
+        Write-DoctorLog "BLOCKED $msg"
+        $issues.Add($msg) | Out-Null
+        $overall = "BLOCKED"
+    }
+    elseif ($agents.discovered_agent_directory_count -lt $MinAgentDirectories) {
+        $msg = "Discovered Agent-* directories below minimum: found=$($agents.discovered_agent_directory_count) min=$MinAgentDirectories root=$($agents.root)"
+        Write-DoctorLog "BLOCKED $msg"
+        $issues.Add($msg) | Out-Null
+        $overall = "BLOCKED"
+    }
+}
+
+# Build mismatch gate
+if ($FailOnBuildMismatch -and $overall -ne "FAIL" -and $buildConsistency.mismatch) {
+    $msg = "MetaEditor/MT5/MetaTester FileVersion mismatch: $(($buildConsistency.unique_versions -join ' vs '))"
+    Write-DoctorLog "FAIL $msg"
+    $issues.Add($msg) | Out-Null
+    $overall = "FAIL"
+}
+
 $report = [ordered]@{
-    schema                 = "ai-bot-trade.env-doctor.v1"
+    schema                 = "ai-bot-trade.env-doctor.v1.1"
     task_id                = "INF-003"
     requirement_id         = "REQ-INF-003"
     rule_id                = "RULE-ENV-001"
@@ -437,6 +564,8 @@ $report = [ordered]@{
     overall_status         = $overall
     issues                 = @($issues)
     install_roots_found    = @($roots)
+    install_data_mapping   = $installDataMap
+    build_consistency      = $buildConsistency
     metaeditor             = $metaInfo
     terminal               = $termInfo
     metatester             = $testerInfo
@@ -448,7 +577,9 @@ $report = [ordered]@{
     discovery_notes        = @(
         "Paths are reported only when discovered via override, registry InstallLocation, known existing directories, or running process image paths.",
         "No executable path is invented.",
-        "Read-only inspection; no trading actions."
+        "Read-only inspection; no trading actions.",
+        "Discovered Agent-* directories are not operational Tester Agents.",
+        "Operational metatester readiness is not claimed unless running process evidence exists; this report sets operational_readiness_claimed=false."
     )
 }
 
