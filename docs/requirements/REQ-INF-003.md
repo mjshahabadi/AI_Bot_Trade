@@ -11,7 +11,7 @@
 
 ## Statement
 
-Provide a reproducible, read-only Windows environment doctor that discovers Git, MetaEditor 5, MetaTrader 5, MetaTester, terminal data directories, discovered Agent-* directories, disk space, and historical-data inventory from the filesystem, registry, and running processes. Executable paths must not be invented. Missing required tools, inaccessible required paths, missing required Agent-* directories (when gated), and MetaEditor/MT5/MetaTester FileVersion mismatch (when gated) must produce a nonzero exit with actionable diagnostics (BLOCKED/FAIL), never a false PASS. Discovered Agent-* directories are not operational readiness.
+Provide a reproducible, read-only Windows environment doctor with an explicit **StrictPreflight** verified mode. Discover Git, MetaEditor 5, MetaTrader 5, MetaTester, terminal data directories, discovered Agent-* directories, disk space, and historical-data inventory without inventing paths. Strict mode must validate executable MZ/PE structure and product identity, nonempty version metadata, Git repository/HEAD exit codes, single-install isolation, Agent-* directory minimums, and build consistency. Missing/invalid required inputs must fail closed (BLOCKED/FAIL). Inventory-only mode must not be presented as verified readiness. Discovered Agent-* directories and process presence never equal operational Strategy Tester readiness. Synthetic fixtures used in tests must be explicitly marked and distinguished from real toolchain evidence.
 
 ## Approval boundary
 

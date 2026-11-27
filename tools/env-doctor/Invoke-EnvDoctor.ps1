@@ -4,42 +4,15 @@
   Read-only Windows / Git / MetaEditor 5 / MT5 environment doctor for INF-003.
 
 .DESCRIPTION
-  Discovers installed tools from the filesystem, registry, and running processes.
-  Does not invent executable paths. Writes JSON + text reports. Secrets are not logged.
+  Discovers tools from filesystem, registry, and running processes without inventing paths.
+  Supports inventory-only mode and strict verified preflight mode.
+  Never launches MetaTrader trading operations. Never claims operational agent readiness
+  from Agent-* directories or process presence alone.
 
-.PARAMETER RepoRoot
-  Repository root used for git status. Defaults to the repository containing this script.
-
-.PARAMETER OutputDir
-  Directory for doctor_report.json and doctor_report.txt.
-
-.PARAMETER MetaEditorPath
-  Optional absolute path override for MetaEditor. If set and missing/unreadable, exits nonzero.
-
-.PARAMETER TerminalPath
-  Optional absolute path override for terminal64.exe.
-
-.PARAMETER InstallRoot
-  Optional install directory override (must contain metaeditor64.exe / terminal64.exe when provided).
-
-.PARAMETER RequireTools
-  When set, missing MetaEditor/terminal/metatester/Git causes nonzero exit (BLOCKED/FAIL).
-
-.PARAMETER SkipGit
-  Skip git inspection (tests only).
-
-.PARAMETER TesterRoot
-  Optional override for MetaQuotes Tester root (tests only). Defaults to %APPDATA%\MetaQuotes\Tester.
-
-.PARAMETER MinAgentDirectories
-  Minimum discovered Agent-* directories required when -RequireAgentDirectories is set.
-
-.PARAMETER RequireAgentDirectories
-  Fail closed (BLOCKED) when discovered Agent-* directory count is below MinAgentDirectories.
-  Discovered directories are NOT proof that agents are operational.
-
-.PARAMETER FailOnBuildMismatch
-  When set, differing MetaEditor/terminal/metatester FileVersion values produce FAIL.
+.PARAMETER StrictPreflight
+  Enables mandatory gates: RequireTools, RequireAgentDirectories, FailOnBuildMismatch,
+  ValidateExecutables, FailOnEmptyVersion, Git fail-closed, single-install isolation.
+  SkipGit is rejected in this mode.
 #>
 [CmdletBinding()]
 param(
@@ -53,6 +26,10 @@ param(
     [switch]$RequireTools,
     [switch]$RequireAgentDirectories,
     [switch]$FailOnBuildMismatch,
+    [switch]$ValidateExecutables,
+    [switch]$FailOnEmptyVersion,
+    [switch]$StrictPreflight,
+    [switch]$AllowSyntheticVersionFixtures,
     [switch]$SkipGit
 )
 
@@ -80,54 +57,128 @@ function Test-ReadableFile {
     }
 }
 
-function Get-ExeInfo {
+function Test-PeMzHeader {
     param([string]$Path)
-    $read = Test-ReadableFile -Path $Path
-    if (-not $read.Ok) {
-        return [ordered]@{
-            path         = $Path
-            exists       = (Test-Path -LiteralPath $Path -PathType Leaf)
-            readable     = $false
-            read_error   = $read.Error
-            length       = $null
-            last_write   = $null
-            file_version = $null
-            product_name = $null
-            company_name = $null
-            sha256       = $null
+    try {
+        $fs = [System.IO.File]::Open($Path, "Open", "Read", "ReadWrite")
+        try {
+            if ($fs.Length -lt 2) { return $false }
+            $b0 = $fs.ReadByte(); $b1 = $fs.ReadByte()
+            return ($b0 -eq 0x4D -and $b1 -eq 0x5A) # MZ
         }
+        finally { $fs.Close() }
+    }
+    catch { return $false }
+}
+
+function Get-ExeInfo {
+    param(
+        [string]$Path,
+        [string]$ExpectedTool, # metaeditor|terminal|metatester
+        [switch]$AllowSynthetic
+    )
+    $read = Test-ReadableFile -Path $Path
+    $info = [ordered]@{
+        path              = $Path
+        exists            = (Test-Path -LiteralPath $Path -PathType Leaf)
+        readable          = $false
+        read_error        = $null
+        length            = $null
+        last_write        = $null
+        file_version      = $null
+        product_name      = $null
+        company_name      = $null
+        original_filename = $null
+        sha256            = $null
+        pe_mz_valid       = $false
+        product_identity_ok = $false
+        version_nonempty  = $false
+        synthetic_fixture = $false
+        validation_error  = $null
+        install_root      = $null
+    }
+    if (-not $read.Ok) {
+        $info.read_error = $read.Error
+        $info.validation_error = $read.Error
+        return $info
     }
     $fi = Get-Item -LiteralPath $Path
+    $info.path = $fi.FullName
+    $info.readable = $true
+    $info.length = $fi.Length
+    $info.last_write = $fi.LastWriteTime.ToString("o")
+    $info.install_root = Split-Path -Parent $fi.FullName
+    $info.sha256 = (Get-FileHash -LiteralPath $Path -Algorithm SHA256).Hash
+    $info.pe_mz_valid = Test-PeMzHeader -Path $Path
+
     $vi = [System.Diagnostics.FileVersionInfo]::GetVersionInfo($Path)
-    $hash = Get-FileHash -LiteralPath $Path -Algorithm SHA256
-    return [ordered]@{
-        path         = $fi.FullName
-        exists       = $true
-        readable     = $true
-        read_error   = $null
-        length       = $fi.Length
-        last_write   = $fi.LastWriteTime.ToString("o")
-        file_version = $vi.FileVersion
-        product_name = $vi.ProductName
-        company_name = $vi.CompanyName
-        sha256       = $hash.Hash
+    $info.file_version = $vi.FileVersion
+    $info.product_name = $vi.ProductName
+    $info.company_name = $vi.CompanyName
+    $info.original_filename = $vi.OriginalFilename
+
+    $sidecar = "$Path.fixture-meta.json"
+    if ($AllowSynthetic -and (Test-Path -LiteralPath $sidecar -PathType Leaf)) {
+        try {
+            $meta = Get-Content -LiteralPath $sidecar -Raw -Encoding UTF8 | ConvertFrom-Json
+            if ($meta.file_version) { $info.file_version = [string]$meta.file_version }
+            if ($meta.product_name) { $info.product_name = [string]$meta.product_name }
+            if ($meta.company_name) { $info.company_name = [string]$meta.company_name }
+            if ($meta.original_filename) { $info.original_filename = [string]$meta.original_filename }
+            $info.synthetic_fixture = $true
+            if (-not $info.pe_mz_valid) {
+                # Synthetic fixtures may ship minimal MZ stubs; still require MZ for "executable structure".
+            }
+        }
+        catch {
+            $info.validation_error = "synthetic_fixture_parse_error"
+        }
     }
+
+    $info.version_nonempty = -not [string]::IsNullOrWhiteSpace([string]$info.file_version)
+
+    $prod = [string]$info.product_name
+    $orig = [string]$info.original_filename
+    $company = [string]$info.company_name
+    switch ($ExpectedTool) {
+        "metaeditor" {
+            $info.product_identity_ok = (
+                ($prod -match 'MetaQuotes Language 5 Editor') -or
+                ($orig -match '(?i)^metaeditor64\.exe$') -or
+                (($company -match 'MetaQuotes') -and ($orig -match '(?i)metaeditor'))
+            )
+        }
+        "terminal" {
+            $info.product_identity_ok = (
+                ($prod -match 'MetaTrader 5 Client Terminal') -or
+                ($orig -match '(?i)^terminal64\.exe$') -or
+                (($company -match 'MetaQuotes') -and ($orig -match '(?i)terminal'))
+            )
+        }
+        "metatester" {
+            $info.product_identity_ok = (
+                ($prod -match 'MetaTester') -or
+                ($orig -match '(?i)^metatester64\.exe$') -or
+                (($company -match 'MetaQuotes') -and ($orig -match '(?i)metatester'))
+            )
+        }
+        default { $info.product_identity_ok = $false }
+    }
+    return $info
 }
 
 function Find-InstallRoots {
+    param([string]$ForcedRoot)
     $roots = New-Object System.Collections.Generic.List[string]
-
-    if ($InstallRoot) {
-        $roots.Add($InstallRoot) | Out-Null
-        return @($roots | Select-Object -Unique)
+    if ($ForcedRoot) {
+        $roots.Add($ForcedRoot.TrimEnd("\", "/")) | Out-Null
+        return @($roots)
     }
-
     $candidates = @(
         "C:\Program Files\MetaTrader 5",
         "C:\Program Files (x86)\MetaTrader 5",
         "C:\MT5-Cursor-Test"
     )
-
     $uninstPaths = @(
         "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\*",
         "HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\*",
@@ -135,142 +186,51 @@ function Find-InstallRoots {
     )
     foreach ($pattern in $uninstPaths) {
         Get-ItemProperty -Path $pattern -ErrorAction SilentlyContinue | ForEach-Object {
-            $display = $null
-            $install = $null
+            $display = $null; $install = $null
             if ($_.PSObject.Properties.Name -contains "DisplayName") { $display = $_.DisplayName }
             if ($_.PSObject.Properties.Name -contains "InstallLocation") { $install = $_.InstallLocation }
             if ($display -and ($display -match "MetaTrader 5") -and $install) {
-                $loc = $install.TrimEnd("\", "/")
-                if ($loc) { $candidates += $loc }
+                $candidates += $install.TrimEnd("\", "/")
             }
         }
     }
-
-    Get-Process -Name "terminal64", "metaeditor64", "metatester64" -ErrorAction SilentlyContinue |
-        ForEach-Object {
-            if ($_.Path) {
-                $dir = Split-Path -Parent $_.Path
-                if ($dir) { $candidates += $dir }
-            }
-        }
-
+    Get-Process -Name "terminal64", "metaeditor64", "metatester64" -ErrorAction SilentlyContinue | ForEach-Object {
+        if ($_.Path) { $candidates += (Split-Path -Parent $_.Path) }
+    }
     foreach ($c in ($candidates | Select-Object -Unique)) {
-        if (Test-Path -LiteralPath $c -PathType Container) {
-            $roots.Add($c) | Out-Null
-        }
+        if ($c -and (Test-Path -LiteralPath $c -PathType Container)) { $roots.Add($c) | Out-Null }
     }
     return @($roots)
-}
-
-function Resolve-ToolPath {
-    param(
-        [string]$Override,
-        [string[]]$Roots,
-        [string]$FileName
-    )
-    if ($Override) {
-        return $Override
-    }
-    foreach ($root in $Roots) {
-        $p = Join-Path $root $FileName
-        if (Test-Path -LiteralPath $p -PathType Leaf) {
-            return $p
-        }
-    }
-    return $null
 }
 
 function Get-TesterAgents {
     param([string]$RootOverride = "")
     $testerRoot = if ($RootOverride) { $RootOverride } else { Join-Path $env:APPDATA "MetaQuotes\Tester" }
-    $runningAgents = @(
-        Get-Process -Name "metatester64", "metatester" -ErrorAction SilentlyContinue |
-            ForEach-Object {
-                [ordered]@{
-                    name = $_.ProcessName
-                    id   = $_.Id
-                    path = $_.Path
-                }
-            }
+    $running = @(
+        Get-Process -Name "metatester64", "metatester" -ErrorAction SilentlyContinue | ForEach-Object {
+            [ordered]@{ name = $_.ProcessName; id = $_.Id; path = $_.Path }
+        }
     )
     $result = [ordered]@{
-        root                      = $testerRoot
-        root_exists               = (Test-Path -LiteralPath $testerRoot -PathType Container)
+        root = $testerRoot
+        root_exists = (Test-Path -LiteralPath $testerRoot -PathType Container)
         discovered_agent_directories = @()
         discovered_agent_directory_count = 0
-        operational_metatester_processes = $runningAgents
-        operational_metatester_process_count = $runningAgents.Count
+        operational_metatester_processes = $running
+        operational_metatester_process_count = $running.Count
         operational_readiness_claimed = $false
-        classification_note       = "Discovered Agent-* directories are filesystem inventory only. Operational readiness requires running metatester process evidence and is not claimed from directory presence alone."
-        # Compatibility aliases used by earlier INF-003 evidence readers:
-        agent_directory_count     = 0
-        agent_directories         = @()
+        operational_agent_ready = $false
+        classification_note = "Discovered Agent-* directories and running metatester process presence are inventory signals only. Operational Strategy Tester agent readiness is never claimed by this doctor."
+        agent_directory_count = 0
+        agent_directories = @()
     }
-    if (-not $result.root_exists) {
-        return $result
-    }
+    if (-not $result.root_exists) { return $result }
     $agents = @(Get-ChildItem -LiteralPath $testerRoot -Recurse -Directory -Filter "Agent*" -ErrorAction SilentlyContinue)
     $result.discovered_agent_directories = @($agents | ForEach-Object { $_.FullName })
     $result.discovered_agent_directory_count = $agents.Count
     $result.agent_directories = $result.discovered_agent_directories
     $result.agent_directory_count = $result.discovered_agent_directory_count
     return $result
-}
-
-function Get-InstallDataMapping {
-    param(
-        [string[]]$InstallRoots,
-        [object]$TerminalData
-    )
-    $maps = @()
-    foreach ($root in $InstallRoots) {
-        $normRoot = $root.TrimEnd("\", "/")
-        $matches = @()
-        if ($TerminalData -and $TerminalData.instances) {
-            foreach ($inst in @($TerminalData.instances)) {
-                if ($inst.origin -and ($inst.origin.TrimEnd("\", "/") -ieq $normRoot)) {
-                    $matches += [ordered]@{
-                        terminal_id = $inst.id
-                        data_path   = $inst.path
-                        origin      = $inst.origin
-                    }
-                }
-            }
-        }
-        $maps += [ordered]@{
-            install_root        = $normRoot
-            matched_terminal_ids = @($matches | ForEach-Object { $_.terminal_id })
-            matches             = $matches
-            mapped              = ($matches.Count -gt 0)
-        }
-    }
-    return $maps
-}
-
-function Get-BuildConsistency {
-    param(
-        $MetaInfo,
-        $TermInfo,
-        $TesterInfo
-    )
-    $versions = @()
-    foreach ($pair in @(
-            @{ Name = "metaeditor"; Info = $MetaInfo },
-            @{ Name = "terminal"; Info = $TermInfo },
-            @{ Name = "metatester"; Info = $TesterInfo }
-        )) {
-        if ($pair.Info -and $pair.Info.exists) {
-            $ver = if ($pair.Info.file_version) { [string]$pair.Info.file_version } else { "EMPTY" }
-            $versions += [ordered]@{ tool = $pair.Name; file_version = $ver }
-        }
-    }
-    $unique = @($versions | ForEach-Object { $_.file_version } | Select-Object -Unique)
-    return [ordered]@{
-        versions_recorded = $versions
-        unique_versions   = $unique
-        consistent        = (($unique.Count -le 1) -and ($versions.Count -gt 0))
-        mismatch          = ($unique.Count -gt 1)
-    }
 }
 
 function Get-TerminalInventory {
@@ -296,214 +256,381 @@ function Get-TerminalInventory {
                     $symbolCount = @(Get-ChildItem -LiteralPath $hist -Directory -ErrorAction SilentlyContinue).Count
                 }
                 $servers += [ordered]@{
-                    name                 = $_.Name
-                    history_exists       = (Test-Path -LiteralPath $hist -PathType Container)
-                    history_symbol_dirs  = $symbolCount
+                    name = $_.Name
+                    history_exists = (Test-Path -LiteralPath $hist -PathType Container)
+                    history_symbol_dirs = $symbolCount
                 }
             }
         }
         $instances += [ordered]@{
-            id              = $_.Name
-            path            = $_.FullName
-            origin          = $origin
-            mql5_exists     = (Test-Path -LiteralPath (Join-Path $_.FullName "MQL5") -PathType Container)
-            tester_exists   = (Test-Path -LiteralPath (Join-Path $_.FullName "Tester") -PathType Container)
-            bases_exists    = (Test-Path -LiteralPath $bases -PathType Container)
-            servers         = $servers
+            id = $_.Name
+            path = $_.FullName
+            origin = $origin
+            mql5_exists = (Test-Path -LiteralPath (Join-Path $_.FullName "MQL5") -PathType Container)
+            tester_exists = (Test-Path -LiteralPath (Join-Path $_.FullName "Tester") -PathType Container)
+            bases_exists = (Test-Path -LiteralPath $bases -PathType Container)
+            servers = $servers
         }
     }
     return [ordered]@{ root = $termRoot; root_exists = $true; instances = $instances }
 }
 
-function Get-DiskInfo {
-    $drive = Get-PSDrive -Name C -ErrorAction SilentlyContinue
-    if (-not $drive) {
-        return [ordered]@{ name = "C"; available = $false }
+function Get-InstallDataMapping {
+    param([string[]]$InstallRoots, $TerminalData)
+    $maps = @()
+    foreach ($root in $InstallRoots) {
+        $normRoot = $root.TrimEnd("\", "/")
+        $matches = @()
+        if ($TerminalData -and $TerminalData.instances) {
+            foreach ($inst in @($TerminalData.instances)) {
+                if ($inst.origin -and ($inst.origin.TrimEnd("\", "/") -ieq $normRoot)) {
+                    $matches += [ordered]@{ terminal_id = $inst.id; data_path = $inst.path; origin = $inst.origin }
+                }
+            }
+        }
+        $maps += [ordered]@{
+            install_root = $normRoot
+            matched_terminal_ids = @($matches | ForEach-Object { $_.terminal_id })
+            matches = $matches
+            mapped = ($matches.Count -gt 0)
+        }
     }
+    return $maps
+}
+
+function Get-BuildConsistency {
+    param($MetaInfo, $TermInfo, $TesterInfo)
+    $versions = @()
+    foreach ($pair in @(
+            @{ Name = "metaeditor"; Info = $MetaInfo },
+            @{ Name = "terminal"; Info = $TermInfo },
+            @{ Name = "metatester"; Info = $TesterInfo }
+        )) {
+        if ($pair.Info -and $pair.Info.exists) {
+            $ver = if (-not [string]::IsNullOrWhiteSpace([string]$pair.Info.file_version)) { [string]$pair.Info.file_version } else { "EMPTY" }
+            $versions += [ordered]@{
+                tool = $pair.Name
+                file_version = $ver
+                synthetic_fixture = [bool]$pair.Info.synthetic_fixture
+            }
+        }
+    }
+    $unique = @($versions | ForEach-Object { $_.file_version } | Select-Object -Unique)
     return [ordered]@{
-        name     = "C"
-        available = $true
-        used_gb  = [math]::Round(($drive.Used / 1GB), 2)
-        free_gb  = [math]::Round(($drive.Free / 1GB), 2)
+        versions_recorded = $versions
+        unique_versions = $unique
+        consistent = (($unique.Count -eq 1) -and ($versions.Count -gt 0) -and ($unique[0] -ne "EMPTY"))
+        mismatch = ($unique.Count -gt 1)
+        empty_version_present = ($unique -contains "EMPTY")
     }
 }
 
-function Get-GitInfo {
-    param([string]$Root)
+function Invoke-GitChecked {
+    param([string]$RepoPath, [string[]]$GitArgs)
     $gitCmd = Get-Command git -ErrorAction SilentlyContinue
     if (-not $gitCmd) {
+        return [pscustomobject]@{ Ok = $false; ExitCode = 127; Output = ""; Error = "git_not_in_path"; Path = $null }
+    }
+    $psi = New-Object System.Diagnostics.ProcessStartInfo
+    $psi.FileName = $gitCmd.Source
+    $psi.Arguments = ($GitArgs | ForEach-Object {
+            if ($_ -match '\s') { '"{0}"' -f ($_ -replace '"', '\"') } else { $_ }
+        }) -join ' '
+    $psi.WorkingDirectory = $RepoPath
+    $psi.UseShellExecute = $false
+    $psi.RedirectStandardOutput = $true
+    $psi.RedirectStandardError = $true
+    $psi.CreateNoWindow = $true
+    $p = New-Object System.Diagnostics.Process
+    $p.StartInfo = $psi
+    [void]$p.Start()
+    $stdout = $p.StandardOutput.ReadToEnd()
+    $stderr = $p.StandardError.ReadToEnd()
+    $p.WaitForExit()
+    return [pscustomobject]@{
+        Ok = ($p.ExitCode -eq 0)
+        ExitCode = $p.ExitCode
+        Output = $stdout.Trim()
+        Error = $stderr.Trim()
+        Path = $gitCmd.Source
+    }
+}
+
+function Get-GitInfoStrict {
+    param([string]$Root, [switch]$Required)
+    if (-not (Test-Path -LiteralPath $Root -PathType Container)) {
         return [ordered]@{
-            available = $false
-            path      = $null
-            version   = $null
-            repo_root = $Root
-            head      = $null
-            status    = $null
-            error     = "git_not_in_path"
+            available = $false; path = $null; version = $null; repo_root = $Root
+            head = $null; status = $null; error = "repo_root_not_found"
+            head_valid = $false; is_git_repository = $false; command_results = @()
         }
     }
-    $head = $null
-    $status = $null
+    $gitDir = Join-Path $Root ".git"
+    $isRepo = (Test-Path -LiteralPath $gitDir)
+    $ver = Invoke-GitChecked -RepoPath $Root -GitArgs @("--version")
+    if (-not $ver.Ok) {
+        return [ordered]@{
+            available = $false; path = $ver.Path; version = $null; repo_root = $Root
+            head = $null; status = $null; error = "git_version_failed:$($ver.ExitCode):$($ver.Error)"
+            head_valid = $false; is_git_repository = $isRepo
+            command_results = @([ordered]@{ command = "git --version"; exit_code = $ver.ExitCode; ok = $false })
+        }
+    }
+    if (-not $isRepo) {
+        return [ordered]@{
+            available = $true; path = $ver.Path; version = $ver.Output; repo_root = (Resolve-Path -LiteralPath $Root).Path
+            head = $null; status = $null; error = "not_a_git_repository"
+            head_valid = $false; is_git_repository = $false
+            command_results = @([ordered]@{ command = "git --version"; exit_code = 0; ok = $true })
+        }
+    }
+    $headCmd = Invoke-GitChecked -RepoPath $Root -GitArgs @("rev-parse", "HEAD")
+    $statCmd = Invoke-GitChecked -RepoPath $Root -GitArgs @("status", "--porcelain=v1")
+    $headValid = ($headCmd.Ok -and ($headCmd.Output -match '^[0-9a-f]{40}$'))
     $err = $null
-    try {
-        Push-Location -LiteralPath $Root
-        $head = (& git rev-parse HEAD 2>&1 | Out-String).Trim()
-        $status = (& git status --porcelain=v1 2>&1 | Out-String).TrimEnd()
-    }
-    catch {
-        $err = $_.Exception.Message
-    }
-    finally {
-        Pop-Location
-    }
+    if (-not $headCmd.Ok) { $err = "rev_parse_failed:$($headCmd.ExitCode):$($headCmd.Error)" }
+    elseif (-not $headValid) { $err = "invalid_head_sha:$($headCmd.Output)" }
+    elseif (-not $statCmd.Ok) { $err = "status_failed:$($statCmd.ExitCode):$($statCmd.Error)" }
     return [ordered]@{
         available = $true
-        path      = $gitCmd.Source
-        version   = ((& git --version) | Out-String).Trim()
+        path = $ver.Path
+        version = $ver.Output
         repo_root = (Resolve-Path -LiteralPath $Root).Path
-        head      = $head
-        status    = $status
-        error     = $err
+        head = $(if ($headCmd.Ok) { $headCmd.Output } else { $null })
+        status = $(if ($statCmd.Ok) { $statCmd.Output } else { $null })
+        error = $err
+        head_valid = $headValid
+        is_git_repository = $true
+        command_results = @(
+            [ordered]@{ command = "git --version"; exit_code = $ver.ExitCode; ok = $ver.Ok }
+            [ordered]@{ command = "git rev-parse HEAD"; exit_code = $headCmd.ExitCode; ok = $headCmd.Ok }
+            [ordered]@{ command = "git status --porcelain=v1"; exit_code = $statCmd.ExitCode; ok = $statCmd.Ok }
+        )
+    }
+}
+
+function Get-DiskInfo {
+    $drive = Get-PSDrive -Name C -ErrorAction SilentlyContinue
+    if (-not $drive) { return [ordered]@{ name = "C"; available = $false } }
+    return [ordered]@{
+        name = "C"; available = $true
+        used_gb = [math]::Round(($drive.Used / 1GB), 2)
+        free_gb = [math]::Round(($drive.Free / 1GB), 2)
     }
 }
 
 # ---- main ----
 $script:LogLines = New-Object System.Collections.Generic.List[string]
 $started = (Get-Date).ToUniversalTime()
+$issues = New-Object System.Collections.Generic.List[string]
+$overall = "PASS"
+
+if ($StrictPreflight) {
+    $RequireTools = $true
+    $RequireAgentDirectories = $true
+    $FailOnBuildMismatch = $true
+    $ValidateExecutables = $true
+    $FailOnEmptyVersion = $true
+}
+
+if ($StrictPreflight -and $SkipGit) {
+    Write-DoctorLog "ERROR StrictPreflight rejects SkipGit (test-only bypass is not verified readiness evidence)"
+    $issues.Add("StrictPreflight rejects SkipGit") | Out-Null
+    $overall = "FAIL"
+}
+
+if ($MinAgentDirectories -lt 1) {
+    $msg = "Invalid MinAgentDirectories=$MinAgentDirectories; must be >= 1"
+    Write-DoctorLog "FAIL $msg"
+    $issues.Add($msg) | Out-Null
+    $overall = "FAIL"
+}
 
 if (-not $RepoRoot) {
     $RepoRoot = (Resolve-Path (Join-Path $PSScriptRoot "..\..")).Path
 }
 else {
-    $RepoRoot = (Resolve-Path -LiteralPath $RepoRoot).Path
+    if (-not (Test-Path -LiteralPath $RepoRoot)) {
+        Write-DoctorLog "ERROR RepoRoot not found: $RepoRoot"
+        $issues.Add("RepoRoot not found: $RepoRoot") | Out-Null
+        $overall = "FAIL"
+        $RepoRoot = $RepoRoot
+    }
+    else {
+        $RepoRoot = (Resolve-Path -LiteralPath $RepoRoot).Path
+    }
 }
 if (-not $OutputDir) {
     $OutputDir = Join-Path $RepoRoot "artifacts\env-doctor\latest"
 }
 New-Item -ItemType Directory -Force -Path $OutputDir | Out-Null
 
-Write-DoctorLog "INF-003 EnvDoctor start $($started.ToString('o'))"
+$mode = if ($StrictPreflight) { "verified_preflight" } else { "inventory_only" }
+Write-DoctorLog "INF-003 EnvDoctor start $($started.ToString('o')) mode=$mode"
 Write-DoctorLog "host=$env:COMPUTERNAME user=$env:USERNAME"
 Write-DoctorLog "os=$([System.Environment]::OSVersion.VersionString)"
 Write-DoctorLog "powershell=$($PSVersionTable.PSVersion)"
 Write-DoctorLog "cwd=$((Get-Location).Path)"
 Write-DoctorLog "repo_root=$RepoRoot"
 Write-DoctorLog "output_dir=$OutputDir"
+Write-DoctorLog "gates RequireTools=$RequireTools RequireAgentDirectories=$RequireAgentDirectories FailOnBuildMismatch=$FailOnBuildMismatch ValidateExecutables=$ValidateExecutables FailOnEmptyVersion=$FailOnEmptyVersion MinAgentDirectories=$MinAgentDirectories"
 
-$issues = New-Object System.Collections.Generic.List[string]
-$overall = "PASS"
-
-# Validate overrides before discovery
-if ($MetaEditorPath) {
-    Write-DoctorLog "override MetaEditorPath=$MetaEditorPath"
-    if (-not (Test-Path -LiteralPath $MetaEditorPath -PathType Leaf)) {
-        $msg = "MetaEditorPath override not found: $MetaEditorPath"
-        Write-DoctorLog "ERROR $msg"
-        $issues.Add($msg) | Out-Null
-        $overall = "FAIL"
-    }
-    elseif (-not (Test-ReadableFile -Path $MetaEditorPath).Ok) {
-        $msg = "MetaEditorPath override not readable: $MetaEditorPath"
-        Write-DoctorLog "ERROR $msg"
-        $issues.Add($msg) | Out-Null
-        $overall = "FAIL"
-    }
-}
-if ($TerminalPath) {
-    Write-DoctorLog "override TerminalPath=$TerminalPath"
-    if (-not (Test-Path -LiteralPath $TerminalPath -PathType Leaf)) {
-        $msg = "TerminalPath override not found: $TerminalPath"
-        Write-DoctorLog "ERROR $msg"
-        $issues.Add($msg) | Out-Null
-        $overall = "FAIL"
+# Override existence checks
+foreach ($ov in @(
+        @{ Name = "MetaEditorPath"; Path = $MetaEditorPath },
+        @{ Name = "TerminalPath"; Path = $TerminalPath }
+    )) {
+    if ($ov.Path) {
+        Write-DoctorLog ("override {0}={1}" -f $ov.Name, $ov.Path)
+        if (-not (Test-Path -LiteralPath $ov.Path -PathType Leaf)) {
+            $msg = "$($ov.Name) override not found: $($ov.Path)"
+            Write-DoctorLog "ERROR $msg"; $issues.Add($msg) | Out-Null; $overall = "FAIL"
+        }
+        elseif (-not (Test-ReadableFile -Path $ov.Path).Ok) {
+            $msg = "$($ov.Name) override not readable: $($ov.Path)"
+            Write-DoctorLog "ERROR $msg"; $issues.Add($msg) | Out-Null; $overall = "FAIL"
+        }
     }
 }
 if ($InstallRoot) {
     Write-DoctorLog "override InstallRoot=$InstallRoot"
     if (-not (Test-Path -LiteralPath $InstallRoot -PathType Container)) {
         $msg = "InstallRoot override not found: $InstallRoot"
-        Write-DoctorLog "ERROR $msg"
-        $issues.Add($msg) | Out-Null
-        $overall = "FAIL"
+        Write-DoctorLog "ERROR $msg"; $issues.Add($msg) | Out-Null; $overall = "FAIL"
     }
 }
 
-$roots = @()
+$discoveredRoots = @()
+$selectedInstallRoot = $null
+$selectionAmbiguous = $false
+$selectionNote = $null
 if ($overall -ne "FAIL") {
-    $roots = Find-InstallRoots
-    Write-DoctorLog ("install_roots=" + (($roots -join ";")))
+    $discoveredRoots = Find-InstallRoots -ForcedRoot ""
+    Write-DoctorLog ("discovered_install_roots=" + ($discoveredRoots -join ";"))
+
+    $overrideRoots = @()
+    if ($MetaEditorPath) { $overrideRoots += (Split-Path -Parent $MetaEditorPath).TrimEnd("\", "/") }
+    if ($TerminalPath) { $overrideRoots += (Split-Path -Parent $TerminalPath).TrimEnd("\", "/") }
+    $overrideRoots = @($overrideRoots | Select-Object -Unique)
+
+    if ($InstallRoot) {
+        $selectedInstallRoot = $InstallRoot.TrimEnd("\", "/")
+        $selectionNote = "explicit_InstallRoot"
+    }
+    elseif ($overrideRoots.Count -eq 1) {
+        $selectedInstallRoot = $overrideRoots[0]
+        $selectionNote = "derived_from_path_overrides"
+    }
+    elseif ($overrideRoots.Count -gt 1) {
+        $selectionAmbiguous = $true
+        $selectionNote = "conflicting_path_overrides"
+        $msg = "Inconsistent tool path overrides across install roots: $($overrideRoots -join ' | ')"
+        Write-DoctorLog "FAIL $msg"; $issues.Add($msg) | Out-Null; $overall = "FAIL"
+    }
+    elseif ($discoveredRoots.Count -eq 1) {
+        $selectedInstallRoot = $discoveredRoots[0]
+        $selectionNote = "single_discovered_root"
+    }
+    elseif ($discoveredRoots.Count -gt 1) {
+        $selectionAmbiguous = $true
+        $selectionNote = "multiple_discovered_roots"
+        if ($StrictPreflight -or $RequireTools) {
+            $msg = "Ambiguous multiple MT5 install roots; specify -InstallRoot. Found: $($discoveredRoots -join ' | ')"
+            Write-DoctorLog "FAIL $msg"; $issues.Add($msg) | Out-Null; $overall = "FAIL"
+        }
+        else {
+            Write-DoctorLog "WARN multiple install roots in inventory-only mode; no silent cross-root tool mix"
+        }
+    }
+    else {
+        $selectionNote = "no_install_root_found"
+    }
 }
 
-$metaPath = $null
-$termPath = $null
-$testerPath = $null
+$metaPath = $null; $termPath = $null; $testerPath = $null
 if ($overall -ne "FAIL") {
-    $metaPath = Resolve-ToolPath -Override $MetaEditorPath -Roots $roots -FileName "metaeditor64.exe"
-    $termPath = Resolve-ToolPath -Override $TerminalPath -Roots $roots -FileName "terminal64.exe"
-    $testerPath = Resolve-ToolPath -Override "" -Roots $roots -FileName "metatester64.exe"
+    if ($MetaEditorPath) { $metaPath = $MetaEditorPath }
+    elseif ($selectedInstallRoot) { $metaPath = Join-Path $selectedInstallRoot "metaeditor64.exe" }
+    if ($TerminalPath) { $termPath = $TerminalPath }
+    elseif ($selectedInstallRoot) { $termPath = Join-Path $selectedInstallRoot "terminal64.exe" }
+    if ($selectedInstallRoot) { $testerPath = Join-Path $selectedInstallRoot "metatester64.exe" }
+
+    # Enforce same-root isolation when paths resolve
+    $rootsUsed = @()
+    foreach ($p in @($metaPath, $termPath, $testerPath)) {
+        if ($p -and (Test-Path -LiteralPath $p -PathType Leaf)) {
+            $rootsUsed += (Split-Path -Parent $p).TrimEnd("\", "/")
+        }
+    }
+    $rootsUsed = @($rootsUsed | Select-Object -Unique)
+    if ($rootsUsed.Count -gt 1) {
+        $selectionAmbiguous = $true
+        $msg = "Selected tools span unrelated install roots: $($rootsUsed -join ' | ')"
+        Write-DoctorLog "FAIL $msg"; $issues.Add($msg) | Out-Null; $overall = "FAIL"
+    }
+    elseif ($rootsUsed.Count -eq 1 -and -not $selectedInstallRoot) {
+        $selectedInstallRoot = $rootsUsed[0]
+    }
 }
 
-$metaInfo = $null
-$termInfo = $null
-$testerInfo = $null
-if ($metaPath) {
-    $metaInfo = Get-ExeInfo -Path $metaPath
-    Write-DoctorLog ("metaeditor path={0} version={1} readable={2}" -f $metaInfo.path, $metaInfo.file_version, $metaInfo.readable)
+$allowSynth = [bool]$AllowSyntheticVersionFixtures
+$metaInfo = $null; $termInfo = $null; $testerInfo = $null
+if ($metaPath -and (Test-Path -LiteralPath $metaPath)) {
+    $metaInfo = Get-ExeInfo -Path $metaPath -ExpectedTool metaeditor -AllowSynthetic:$allowSynth
+    Write-DoctorLog ("metaeditor path={0} ver={1} pe={2} identity={3} synth={4}" -f $metaInfo.path, $metaInfo.file_version, $metaInfo.pe_mz_valid, $metaInfo.product_identity_ok, $metaInfo.synthetic_fixture)
 }
-else {
-    Write-DoctorLog "metaeditor=NOT_FOUND"
+else { Write-DoctorLog "metaeditor=NOT_FOUND" }
+if ($termPath -and (Test-Path -LiteralPath $termPath)) {
+    $termInfo = Get-ExeInfo -Path $termPath -ExpectedTool terminal -AllowSynthetic:$allowSynth
+    Write-DoctorLog ("terminal path={0} ver={1} pe={2} identity={3} synth={4}" -f $termInfo.path, $termInfo.file_version, $termInfo.pe_mz_valid, $termInfo.product_identity_ok, $termInfo.synthetic_fixture)
 }
-if ($termPath) {
-    $termInfo = Get-ExeInfo -Path $termPath
-    Write-DoctorLog ("terminal path={0} version={1} readable={2}" -f $termInfo.path, $termInfo.file_version, $termInfo.readable)
+else { Write-DoctorLog "terminal=NOT_FOUND" }
+if ($testerPath -and (Test-Path -LiteralPath $testerPath)) {
+    $testerInfo = Get-ExeInfo -Path $testerPath -ExpectedTool metatester -AllowSynthetic:$allowSynth
+    Write-DoctorLog ("metatester path={0} ver={1} pe={2} identity={3} synth={4}" -f $testerInfo.path, $testerInfo.file_version, $testerInfo.pe_mz_valid, $testerInfo.product_identity_ok, $testerInfo.synthetic_fixture)
 }
-else {
-    Write-DoctorLog "terminal=NOT_FOUND"
-}
-if ($testerPath) {
-    $testerInfo = Get-ExeInfo -Path $testerPath
-    Write-DoctorLog ("metatester path={0} version={1} readable={2}" -f $testerInfo.path, $testerInfo.file_version, $testerInfo.readable)
-}
-else {
-    Write-DoctorLog "metatester=NOT_FOUND"
-}
+else { Write-DoctorLog "metatester=NOT_FOUND" }
 
 $gitInfo = $null
 if (-not $SkipGit) {
-    $gitInfo = Get-GitInfo -Root $RepoRoot
-    Write-DoctorLog ("git available={0} path={1} version={2} head={3}" -f $gitInfo.available, $gitInfo.path, $gitInfo.version, $gitInfo.head)
+    $gitInfo = Get-GitInfoStrict -Root $RepoRoot -Required:($RequireTools -or $StrictPreflight)
+    Write-DoctorLog ("git available={0} repo={1} head={2} head_valid={3} err={4}" -f $gitInfo.available, $gitInfo.is_git_repository, $gitInfo.head, $gitInfo.head_valid, $gitInfo.error)
 }
 else {
-    Write-DoctorLog "git=SKIPPED"
+    Write-DoctorLog "git=SKIPPED (test-only bypass; not verified readiness evidence)"
 }
 
 $agents = Get-TesterAgents -RootOverride $TesterRoot
 Write-DoctorLog ("discovered_agent_directories count={0} root={1}" -f $agents.discovered_agent_directory_count, $agents.root)
 Write-DoctorLog ("operational_metatester_processes count={0}" -f $agents.operational_metatester_process_count)
-Write-DoctorLog ("operational_readiness_claimed={0}" -f $agents.operational_readiness_claimed)
+Write-DoctorLog "operational_readiness_claimed=False operational_agent_ready=False"
 
 $terminals = Get-TerminalInventory
-Write-DoctorLog ("terminal_instances count={0}" -f @($terminals.instances).Count)
-
-$installDataMap = Get-InstallDataMapping -InstallRoots $roots -TerminalData $terminals
+$mapRoots = @()
+if ($selectedInstallRoot) { $mapRoots = @($selectedInstallRoot) }
+elseif ($discoveredRoots.Count -gt 0) { $mapRoots = $discoveredRoots }
+$installDataMap = Get-InstallDataMapping -InstallRoots $mapRoots -TerminalData $terminals
+$selectedDataDir = $null
+$selectedTerminalId = $null
 foreach ($m in $installDataMap) {
-    Write-DoctorLog ("install_data_map root={0} mapped={1} terminals={2}" -f $m.install_root, $m.mapped, (($m.matched_terminal_ids -join ",")))
+    Write-DoctorLog ("install_data_map root={0} mapped={1} terminals={2}" -f $m.install_root, $m.mapped, ($m.matched_terminal_ids -join ","))
+    if ($selectedInstallRoot -and ($m.install_root -ieq $selectedInstallRoot) -and $m.mapped) {
+        $selectedTerminalId = $m.matched_terminal_ids[0]
+        $selectedDataDir = $m.matches[0].data_path
+    }
 }
 
 $buildConsistency = Get-BuildConsistency -MetaInfo $metaInfo -TermInfo $termInfo -TesterInfo $testerInfo
-Write-DoctorLog ("build_consistency consistent={0} versions={1}" -f $buildConsistency.consistent, (($buildConsistency.unique_versions -join ",")))
+Write-DoctorLog ("build_consistency consistent={0} mismatch={1} empty={2} versions={3}" -f $buildConsistency.consistent, $buildConsistency.mismatch, $buildConsistency.empty_version_present, ($buildConsistency.unique_versions -join ","))
 
 $disk = Get-DiskInfo
-Write-DoctorLog ("disk_c free_gb={0}" -f $disk.free_gb)
-
 $running = @(
-    Get-Process -Name "terminal64", "metaeditor64", "metatester64" -ErrorAction SilentlyContinue |
-        ForEach-Object {
-            [ordered]@{ name = $_.ProcessName; id = $_.Id; path = $_.Path }
-        }
+    Get-Process -Name "terminal64", "metaeditor64", "metatester64" -ErrorAction SilentlyContinue | ForEach-Object {
+        [ordered]@{ name = $_.ProcessName; id = $_.Id; path = $_.Path }
+    }
 )
 
-# Required-tool gate
+# Gates
 if ($RequireTools -and $overall -ne "FAIL") {
     foreach ($pair in @(
             @{ Name = "MetaEditor"; Info = $metaInfo },
@@ -512,86 +639,125 @@ if ($RequireTools -and $overall -ne "FAIL") {
         )) {
         if (-not $pair.Info -or -not $pair.Info.exists -or -not $pair.Info.readable) {
             $msg = "Required tool missing or unreadable: $($pair.Name)"
-            Write-DoctorLog "BLOCKED $msg"
-            $issues.Add($msg) | Out-Null
-            $overall = "BLOCKED"
+            Write-DoctorLog "BLOCKED $msg"; $issues.Add($msg) | Out-Null; $overall = "BLOCKED"
         }
     }
-    if (-not $SkipGit -and (-not $gitInfo -or -not $gitInfo.available)) {
-        $msg = "Required tool missing: Git"
-        Write-DoctorLog "BLOCKED $msg"
-        $issues.Add($msg) | Out-Null
-        $overall = "BLOCKED"
+    if (-not $SkipGit) {
+        if (-not $gitInfo -or -not $gitInfo.available -or -not $gitInfo.is_git_repository -or -not $gitInfo.head_valid -or $gitInfo.error) {
+            $msg = "Required Git inspection failed: $(if ($gitInfo) { $gitInfo.error } else { 'git_unavailable' })"
+            Write-DoctorLog "BLOCKED $msg"; $issues.Add($msg) | Out-Null; $overall = "BLOCKED"
+        }
     }
 }
 
-# Fail-closed for missing discovered agent directories (not operational claim)
+if ($ValidateExecutables -and $overall -ne "FAIL") {
+    foreach ($pair in @(
+            @{ Name = "MetaEditor"; Info = $metaInfo },
+            @{ Name = "Terminal"; Info = $termInfo },
+            @{ Name = "MetaTester"; Info = $testerInfo }
+        )) {
+        if (-not $pair.Info -or -not $pair.Info.exists) { continue }
+        if (-not $pair.Info.pe_mz_valid) {
+            $msg = "Invalid executable structure (MZ/PE) for $($pair.Name): $($pair.Info.path)"
+            Write-DoctorLog "FAIL $msg"; $issues.Add($msg) | Out-Null; $overall = "FAIL"
+        }
+        elseif (-not $pair.Info.product_identity_ok) {
+            $msg = "Unexpected product identity for $($pair.Name): product='$($pair.Info.product_name)' original='$($pair.Info.original_filename)'"
+            Write-DoctorLog "FAIL $msg"; $issues.Add($msg) | Out-Null; $overall = "FAIL"
+        }
+    }
+}
+
+if ($FailOnEmptyVersion -and $overall -ne "FAIL") {
+    foreach ($pair in @(
+            @{ Name = "MetaEditor"; Info = $metaInfo },
+            @{ Name = "Terminal"; Info = $termInfo },
+            @{ Name = "MetaTester"; Info = $testerInfo }
+        )) {
+        if ($pair.Info -and $pair.Info.exists -and -not $pair.Info.version_nonempty) {
+            $msg = "Empty/missing FileVersion metadata for $($pair.Name): $($pair.Info.path)"
+            Write-DoctorLog "FAIL $msg"; $issues.Add($msg) | Out-Null; $overall = "FAIL"
+        }
+    }
+}
+
 if ($RequireAgentDirectories -and $overall -ne "FAIL") {
     if (-not $agents.root_exists) {
         $msg = "Tester root missing or unavailable: $($agents.root)"
-        Write-DoctorLog "BLOCKED $msg"
-        $issues.Add($msg) | Out-Null
-        $overall = "BLOCKED"
+        Write-DoctorLog "BLOCKED $msg"; $issues.Add($msg) | Out-Null; $overall = "BLOCKED"
     }
     elseif ($agents.discovered_agent_directory_count -lt $MinAgentDirectories) {
         $msg = "Discovered Agent-* directories below minimum: found=$($agents.discovered_agent_directory_count) min=$MinAgentDirectories root=$($agents.root)"
-        Write-DoctorLog "BLOCKED $msg"
-        $issues.Add($msg) | Out-Null
-        $overall = "BLOCKED"
+        Write-DoctorLog "BLOCKED $msg"; $issues.Add($msg) | Out-Null; $overall = "BLOCKED"
     }
 }
 
-# Build mismatch gate
-if ($FailOnBuildMismatch -and $overall -ne "FAIL" -and $buildConsistency.mismatch) {
-    $msg = "MetaEditor/MT5/MetaTester FileVersion mismatch: $(($buildConsistency.unique_versions -join ' vs '))"
-    Write-DoctorLog "FAIL $msg"
-    $issues.Add($msg) | Out-Null
-    $overall = "FAIL"
+if ($FailOnBuildMismatch -and $overall -ne "FAIL") {
+    if ($buildConsistency.mismatch) {
+        $msg = "MetaEditor/MT5/MetaTester FileVersion mismatch: $($buildConsistency.unique_versions -join ' vs ')"
+        Write-DoctorLog "FAIL $msg"; $issues.Add($msg) | Out-Null; $overall = "FAIL"
+    }
+}
+
+$readiness = [ordered]@{
+    mode = $mode
+    inventory_only = ($mode -eq "inventory_only")
+    verified_environment_preflight = ($mode -eq "verified_preflight")
+    verified_preflight_passed = (($mode -eq "verified_preflight") -and ($overall -eq "PASS"))
+    operational_agent_ready = $false
+    note = "verified_environment_preflight asserts tool/Git/agent-directory/build gates only. It does not assert Strategy Tester operational readiness."
 }
 
 $report = [ordered]@{
-    schema                 = "ai-bot-trade.env-doctor.v1.1"
-    task_id                = "INF-003"
-    requirement_id         = "REQ-INF-003"
-    rule_id                = "RULE-ENV-001"
-    timestamp_utc          = $started.ToString("o")
-    host                   = $env:COMPUTERNAME
-    user                   = $env:USERNAME
-    os                     = [System.Environment]::OSVersion.VersionString
-    powershell             = $PSVersionTable.PSVersion.ToString()
-    working_directory      = (Get-Location).Path
-    repo_root              = $RepoRoot
-    overall_status         = $overall
-    issues                 = @($issues)
-    install_roots_found    = @($roots)
-    install_data_mapping   = $installDataMap
-    build_consistency      = $buildConsistency
-    metaeditor             = $metaInfo
-    terminal               = $termInfo
-    metatester             = $testerInfo
-    git                    = $gitInfo
-    tester_agents          = $agents
-    terminal_data          = $terminals
-    disk                   = $disk
-    running_processes      = $running
-    discovery_notes        = @(
-        "Paths are reported only when discovered via override, registry InstallLocation, known existing directories, or running process image paths.",
+    schema = "ai-bot-trade.env-doctor.v1.2"
+    task_id = "INF-003"
+    requirement_id = "REQ-INF-003"
+    rule_id = "RULE-ENV-001"
+    timestamp_utc = $started.ToString("o")
+    host = $env:COMPUTERNAME
+    user = $env:USERNAME
+    os = [System.Environment]::OSVersion.VersionString
+    powershell = $PSVersionTable.PSVersion.ToString()
+    working_directory = (Get-Location).Path
+    repo_root = $RepoRoot
+    overall_status = $overall
+    issues = @($issues)
+    readiness = $readiness
+    selected_installation = [ordered]@{
+        install_root = $selectedInstallRoot
+        data_directory = $selectedDataDir
+        terminal_id = $selectedTerminalId
+        selection_note = $selectionNote
+        ambiguous = $selectionAmbiguous
+        discovered_roots = @($discoveredRoots)
+    }
+    install_roots_found = @($discoveredRoots)
+    install_data_mapping = $installDataMap
+    build_consistency = $buildConsistency
+    metaeditor = $metaInfo
+    terminal = $termInfo
+    metatester = $testerInfo
+    git = $gitInfo
+    tester_agents = $agents
+    terminal_data = $terminals
+    disk = $disk
+    running_processes = $running
+    discovery_notes = @(
         "No executable path is invented.",
-        "Read-only inspection; no trading actions.",
-        "Discovered Agent-* directories are not operational Tester Agents.",
-        "Operational metatester readiness is not claimed unless running process evidence exists; this report sets operational_readiness_claimed=false."
+        "Read-only inspection; MT5 is not launched for trading.",
+        "StrictPreflight enables mandatory readiness gates; inventory-only mode does not imply verified readiness.",
+        "Discovered Agent-* directories and metatester process presence never imply operational_agent_ready.",
+        "Synthetic version fixtures are test-only and marked synthetic_fixture=true."
     )
 }
 
 $jsonPath = Join-Path $OutputDir "doctor_report.json"
 $txtPath = Join-Path $OutputDir "doctor_report.txt"
-($report | ConvertTo-Json -Depth 10) | Set-Content -LiteralPath $jsonPath -Encoding UTF8
+($report | ConvertTo-Json -Depth 12) | Set-Content -LiteralPath $jsonPath -Encoding UTF8
 ($script:LogLines -join [Environment]::NewLine) | Set-Content -LiteralPath $txtPath -Encoding UTF8
 Write-DoctorLog "wrote $jsonPath"
 Write-DoctorLog "wrote $txtPath"
-Write-DoctorLog "overall_status=$overall"
+Write-DoctorLog "overall_status=$overall readiness_mode=$mode verified_preflight_passed=$($readiness.verified_preflight_passed)"
 
-if ($overall -eq "PASS") {
-    exit 0
-}
+if ($overall -eq "PASS") { exit 0 }
 exit 1

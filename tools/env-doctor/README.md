@@ -1,34 +1,51 @@
 # Windows / MT5 Environment Doctor (INF-003)
 
-Read-only preflight inventory for Git, MetaEditor 5, MetaTrader 5, MetaTester, tester agents, terminal data, and disk space.
+Read-only preflight inventory and **strict verified preflight** for Git, MetaEditor 5, MetaTrader 5, MetaTester, discovered Agent-* directories, install↔data mapping, and disk space.
 
-## Run on Windows
+This tool does **not** launch trading operations and never claims Strategy Tester **operational** agent readiness from directories or process presence alone.
+
+## Strict verified preflight (mandatory gates)
 
 ```powershell
 powershell.exe -NoProfile -ExecutionPolicy Bypass `
   -File .\tools\env-doctor\Invoke-EnvDoctor.ps1 `
   -RepoRoot . `
   -OutputDir .\artifacts\env-doctor\latest `
-  -RequireTools
+  -InstallRoot "C:\Program Files\MetaTrader 5" `
+  -StrictPreflight `
+  -MinAgentDirectories 1
 ```
 
-Exit code `0` means required tools were found and readable. Nonzero means `FAIL` or `BLOCKED` — inspect `doctor_report.json` and `doctor_report.txt`.
+`-StrictPreflight` enables:
 
-## Optional overrides
+- `RequireTools`
+- `RequireAgentDirectories`
+- `FailOnBuildMismatch`
+- `ValidateExecutables` (MZ/PE structure + product identity)
+- `FailOnEmptyVersion`
+- Git fail-closed (valid repo + HEAD SHA)
+- Single-install isolation (no silent cross-root mixes)
+
+`-SkipGit` is rejected under `-StrictPreflight` (test-only bypass, not readiness evidence).
+
+Exit `0` only when verified preflight gates pass. Inspect `doctor_report.json` → `readiness`.
+
+## Inventory-only (non-readiness)
+
+Omit `-StrictPreflight` for discovery/inventory. Inventory-only results are **not** verified environment readiness.
+
+## Parameters
 
 | Parameter | Purpose |
 |---|---|
-| `-MetaEditorPath` | Absolute path to `metaeditor64.exe` (used by negative tests) |
-| `-TerminalPath` | Absolute path to `terminal64.exe` |
-| `-InstallRoot` | Install directory containing the MT5 executables |
-| `-RequireTools` | Fail closed when Git/MetaEditor/terminal/metatester are missing |
-| `-RequireAgentDirectories` | Fail closed when discovered `Agent-*` dirs are below `-MinAgentDirectories` |
-| `-MinAgentDirectories` | Minimum discovered agent directories (default 1) |
-| `-TesterRoot` | Override Tester inventory root (tests only) |
-| `-FailOnBuildMismatch` | FAIL when MetaEditor/terminal/metatester FileVersion values differ |
-| `-SkipGit` | Skip git inspection (test helpers only) |
-
-Discovered `Agent-*` directories are filesystem inventory only. This tool does **not** claim operational Strategy Tester agent readiness from directory presence.
+| `-StrictPreflight` | Enable all mandatory readiness gates |
+| `-InstallRoot` | Explicit MT5 install (required when multiple installs exist under strict mode) |
+| `-MetaEditorPath` / `-TerminalPath` | Absolute overrides; conflicting roots are rejected |
+| `-TesterRoot` | Override Tester inventory root (tests) |
+| `-MinAgentDirectories` | Minimum discovered `Agent-*` dirs (must be >= 1) |
+| `-RequireTools` / `-RequireAgentDirectories` / `-FailOnBuildMismatch` / `-ValidateExecutables` / `-FailOnEmptyVersion` | Individual gates |
+| `-AllowSyntheticVersionFixtures` | Test-only sidecar `*.exe.fixture-meta.json` |
+| `-SkipGit` | Test-only Git bypass (forbidden with StrictPreflight) |
 
 ## Tests
 
@@ -38,4 +55,4 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass `
   -RepoRoot .
 ```
 
-Produces `artifacts/issue-3/run-*/` with raw logs, CSV results, and `run_manifest.json`.
+Requires a **clean** git worktree before evidence generation. Dirty trees are rejected (`TC-INF-003-M` / BIND).
