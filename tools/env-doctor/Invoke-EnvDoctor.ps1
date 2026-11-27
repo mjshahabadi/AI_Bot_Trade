@@ -30,7 +30,8 @@ param(
     [switch]$FailOnEmptyVersion,
     [switch]$StrictPreflight,
     [switch]$AllowSyntheticVersionFixtures,
-    [switch]$SkipGit
+    [switch]$SkipGit,
+    [string]$TerminalDataRoot = ""
 )
 
 Set-StrictMode -Version Latest
@@ -58,13 +59,32 @@ function Test-ReadableFile {
 }
 
 function Test-PeMzHeader {
+    <#
+      Bounded DOS header + PE signature validation (INF003-F08).
+      Requires: MZ at 0, DOS header size, e_lfanew within file bounds,
+      and PE\0\0 signature at e_lfanew. MZ-only stubs are rejected.
+    #>
     param([string]$Path)
     try {
         $fs = [System.IO.File]::Open($Path, "Open", "Read", "ReadWrite")
         try {
-            if ($fs.Length -lt 2) { return $false }
-            $b0 = $fs.ReadByte(); $b1 = $fs.ReadByte()
-            return ($b0 -eq 0x4D -and $b1 -eq 0x5A) # MZ
+            $len = $fs.Length
+            # Minimum: 64-byte DOS header + 4-byte PE signature
+            if ($len -lt 68) { return $false }
+            $hdr = New-Object byte[] 64
+            $read = $fs.Read($hdr, 0, 64)
+            if ($read -lt 64) { return $false }
+            if (-not ($hdr[0] -eq 0x4D -and $hdr[1] -eq 0x5A)) { return $false } # MZ
+            # e_lfanew at offset 0x3C (little-endian Int32)
+            $e_lfanew = [BitConverter]::ToInt32($hdr, 0x3C)
+            if ($e_lfanew -lt 64) { return $false }
+            if (($e_lfanew + 4L) -gt $len) { return $false }
+            [void]$fs.Seek([int64]$e_lfanew, [System.IO.SeekOrigin]::Begin)
+            $sig = New-Object byte[] 4
+            $sread = $fs.Read($sig, 0, 4)
+            if ($sread -lt 4) { return $false }
+            # PE\0\0
+            return ($sig[0] -eq 0x50 -and $sig[1] -eq 0x45 -and $sig[2] -eq 0x00 -and $sig[3] -eq 0x00)
         }
         finally { $fs.Close() }
     }
@@ -126,9 +146,7 @@ function Get-ExeInfo {
             if ($meta.company_name) { $info.company_name = [string]$meta.company_name }
             if ($meta.original_filename) { $info.original_filename = [string]$meta.original_filename }
             $info.synthetic_fixture = $true
-            if (-not $info.pe_mz_valid) {
-                # Synthetic fixtures may ship minimal MZ stubs; still require MZ for "executable structure".
-            }
+            # Synthetic fixtures still require bounded DOS/PE structure (F08); MZ-only stubs fail.
         }
         catch {
             $info.validation_error = "synthetic_fixture_parse_error"
@@ -234,7 +252,8 @@ function Get-TesterAgents {
 }
 
 function Get-TerminalInventory {
-    $termRoot = Join-Path $env:APPDATA "MetaQuotes\Terminal"
+    param([string]$RootOverride = "")
+    $termRoot = if ($RootOverride) { $RootOverride } else { Join-Path $env:APPDATA "MetaQuotes\Terminal" }
     $instances = @()
     if (-not (Test-Path -LiteralPath $termRoot -PathType Container)) {
         return [ordered]@{ root = $termRoot; root_exists = $false; instances = @() }
@@ -439,6 +458,12 @@ if ($StrictPreflight -and $SkipGit) {
     $overall = "FAIL"
 }
 
+if ($StrictPreflight -and $AllowSyntheticVersionFixtures) {
+    Write-DoctorLog "ERROR StrictPreflight rejects AllowSyntheticVersionFixtures (synthetic metadata is not verified readiness evidence)"
+    $issues.Add("StrictPreflight rejects AllowSyntheticVersionFixtures") | Out-Null
+    $overall = "FAIL"
+}
+
 if ($MinAgentDirectories -lt 1) {
     $msg = "Invalid MinAgentDirectories=$MinAgentDirectories; must be >= 1"
     Write-DoctorLog "FAIL $msg"
@@ -605,18 +630,48 @@ Write-DoctorLog ("discovered_agent_directories count={0} root={1}" -f $agents.di
 Write-DoctorLog ("operational_metatester_processes count={0}" -f $agents.operational_metatester_process_count)
 Write-DoctorLog "operational_readiness_claimed=False operational_agent_ready=False"
 
-$terminals = Get-TerminalInventory
+$terminals = Get-TerminalInventory -RootOverride $TerminalDataRoot
 $mapRoots = @()
 if ($selectedInstallRoot) { $mapRoots = @($selectedInstallRoot) }
 elseif ($discoveredRoots.Count -gt 0) { $mapRoots = $discoveredRoots }
 $installDataMap = Get-InstallDataMapping -InstallRoots $mapRoots -TerminalData $terminals
 $selectedDataDir = $null
 $selectedTerminalId = $null
+$dataMappingStatus = "not_selected"
+$dataMappingReason = $null
+$dataMappingVerified = $false
 foreach ($m in $installDataMap) {
-    Write-DoctorLog ("install_data_map root={0} mapped={1} terminals={2}" -f $m.install_root, $m.mapped, ($m.matched_terminal_ids -join ","))
-    if ($selectedInstallRoot -and ($m.install_root -ieq $selectedInstallRoot) -and $m.mapped) {
+    Write-DoctorLog ("install_data_map root={0} mapped={1} match_count={2} terminals={3}" -f $m.install_root, $m.mapped, @($m.matches).Count, ($m.matched_terminal_ids -join ","))
+    if (-not ($selectedInstallRoot -and ($m.install_root -ieq $selectedInstallRoot))) { continue }
+    $matchCount = @($m.matches).Count
+    if ($matchCount -eq 0) {
+        $dataMappingStatus = "missing"
+        $dataMappingReason = "No terminal data directory origin.txt maps to selected install root: $($m.install_root)"
+        Write-DoctorLog "FAIL data_directory_mapping_missing: $dataMappingReason"
+        if ($StrictPreflight -or $RequireTools) {
+            $issues.Add($dataMappingReason) | Out-Null
+            $overall = "FAIL"
+        }
+    }
+    elseif ($matchCount -gt 1) {
+        $dataMappingStatus = "ambiguous"
+        $ids = @($m.matched_terminal_ids) -join ","
+        $dataMappingReason = "Ambiguous terminal data-directory mapping for install root $($m.install_root); matches=$matchCount terminals=$ids. Refusing silent first-match selection."
+        Write-DoctorLog "FAIL data_directory_mapping_ambiguous: $dataMappingReason"
+        $selectionAmbiguous = $true
+        # Never silently select the first ambiguous match (INF003-F11).
+        if ($StrictPreflight -or $RequireTools) {
+            $issues.Add($dataMappingReason) | Out-Null
+            $overall = "FAIL"
+        }
+    }
+    else {
+        $dataMappingStatus = "unique"
         $selectedTerminalId = $m.matched_terminal_ids[0]
         $selectedDataDir = $m.matches[0].data_path
+        $dataMappingVerified = $true
+        $dataMappingReason = "Unique origin.txt mapping"
+        Write-DoctorLog ("data_directory_mapping_unique terminal_id={0} data={1}" -f $selectedTerminalId, $selectedDataDir)
     }
 }
 
@@ -699,17 +754,31 @@ if ($FailOnBuildMismatch -and $overall -ne "FAIL") {
     }
 }
 
+$anySynthetic = $false
+foreach ($info in @($metaInfo, $termInfo, $testerInfo)) {
+    if ($info -and $info.synthetic_fixture) { $anySynthetic = $true }
+}
+# Synthetic metadata must never yield verified_preflight_passed=true (INF003-F09).
+$verifiedPassed = (($mode -eq "verified_preflight") -and ($overall -eq "PASS") -and (-not $anySynthetic) -and (-not $AllowSyntheticVersionFixtures))
+if ($anySynthetic -and $mode -eq "verified_preflight") {
+    Write-DoctorLog "ERROR synthetic fixture metadata present under verified_preflight; verified_preflight_passed forced false"
+    $issues.Add("Synthetic fixture metadata cannot satisfy verified preflight") | Out-Null
+    if ($overall -eq "PASS") { $overall = "FAIL" }
+    $verifiedPassed = $false
+}
+
 $readiness = [ordered]@{
     mode = $mode
     inventory_only = ($mode -eq "inventory_only")
     verified_environment_preflight = ($mode -eq "verified_preflight")
-    verified_preflight_passed = (($mode -eq "verified_preflight") -and ($overall -eq "PASS"))
+    verified_preflight_passed = $verifiedPassed
+    synthetic_fixture_present = $anySynthetic
     operational_agent_ready = $false
-    note = "verified_environment_preflight asserts tool/Git/agent-directory/build gates only. It does not assert Strategy Tester operational readiness."
+    note = "verified_environment_preflight asserts tool/Git/agent-directory/build gates only. It does not assert Strategy Tester operational readiness. Synthetic fixtures never satisfy verified preflight."
 }
 
 $report = [ordered]@{
-    schema = "ai-bot-trade.env-doctor.v1.2"
+    schema = "ai-bot-trade.env-doctor.v1.3"
     task_id = "INF-003"
     requirement_id = "REQ-INF-003"
     rule_id = "RULE-ENV-001"
@@ -730,6 +799,9 @@ $report = [ordered]@{
         selection_note = $selectionNote
         ambiguous = $selectionAmbiguous
         discovered_roots = @($discoveredRoots)
+        data_mapping_status = $dataMappingStatus
+        data_mapping_reason = $dataMappingReason
+        data_mapping_verified = $dataMappingVerified
     }
     install_roots_found = @($discoveredRoots)
     install_data_mapping = $installDataMap

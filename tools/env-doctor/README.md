@@ -21,18 +21,19 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass `
 - `RequireTools`
 - `RequireAgentDirectories`
 - `FailOnBuildMismatch`
-- `ValidateExecutables` (MZ/PE structure + product identity)
+- `ValidateExecutables` (bounded DOS header + PE signature + product identity)
 - `FailOnEmptyVersion`
 - Git fail-closed (valid repo + HEAD SHA)
 - Single-install isolation (no silent cross-root mixes)
+- Unique install↔data-directory mapping (missing/ambiguous fail closed)
 
-`-SkipGit` is rejected under `-StrictPreflight` (test-only bypass, not readiness evidence).
+`-SkipGit` and `-AllowSyntheticVersionFixtures` are rejected under `-StrictPreflight` (test-only bypasses, not readiness evidence). Synthetic metadata never yields `verified_preflight_passed=true`.
 
 Exit `0` only when verified preflight gates pass. Inspect `doctor_report.json` → `readiness`.
 
 ## Inventory-only (non-readiness)
 
-Omit `-StrictPreflight` for discovery/inventory. Inventory-only results are **not** verified environment readiness.
+Omit `-StrictPreflight` for discovery/inventory. Inventory-only results are **not** verified environment readiness. Synthetic fixtures remain available for isolated non-strict tests only.
 
 ## Parameters
 
@@ -42,9 +43,10 @@ Omit `-StrictPreflight` for discovery/inventory. Inventory-only results are **no
 | `-InstallRoot` | Explicit MT5 install (required when multiple installs exist under strict mode) |
 | `-MetaEditorPath` / `-TerminalPath` | Absolute overrides; conflicting roots are rejected |
 | `-TesterRoot` | Override Tester inventory root (tests) |
+| `-TerminalDataRoot` | Override terminal data inventory root (tests; default `%AppData%\MetaQuotes\Terminal`) |
 | `-MinAgentDirectories` | Minimum discovered `Agent-*` dirs (must be >= 1) |
 | `-RequireTools` / `-RequireAgentDirectories` / `-FailOnBuildMismatch` / `-ValidateExecutables` / `-FailOnEmptyVersion` | Individual gates |
-| `-AllowSyntheticVersionFixtures` | Test-only sidecar `*.exe.fixture-meta.json` |
+| `-AllowSyntheticVersionFixtures` | Test-only sidecar `*.exe.fixture-meta.json` (forbidden with StrictPreflight) |
 | `-SkipGit` | Test-only Git bypass (forbidden with StrictPreflight) |
 
 ## Tests
@@ -55,4 +57,4 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass `
   -RepoRoot .
 ```
 
-Requires a **clean** git worktree before evidence generation. Dirty trees are rejected (`TC-INF-003-M` / BIND).
+Requires a **clean** git worktree before evidence generation. Dirty trees are rejected via a real isolated-worktree negative probe (`TC-INF-003-M` / BIND). Suite: TC-A..R + REG-1/2 + BIND (21 cases).

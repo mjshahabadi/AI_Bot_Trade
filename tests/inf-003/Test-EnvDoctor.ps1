@@ -1,12 +1,13 @@
 ﻿#Requires -Version 5.1
 <#
 .SYNOPSIS
-  INF-003 Environment Doctor tests: TC-INF-003-A..N + REG + BIND.
+  INF-003 Environment Doctor tests: TC-INF-003-A..R + REG + BIND (21 cases).
 #>
 [CmdletBinding()]
 param(
     [string]$RepoRoot = (Resolve-Path (Join-Path $PSScriptRoot "..\..")).Path,
-    [string]$EvidenceDir = ""
+    [string]$EvidenceDir = "",
+    [switch]$DirtyTreeProbeOnly
 )
 
 Set-StrictMode -Version Latest
@@ -85,11 +86,24 @@ function Invoke-DoctorCapture {
     }
 }
 
-function New-MzStub {
+function New-MinimalPeStub {
     param([string]$Path)
-    # Minimal DOS MZ header (not a full PE). Enough for pe_mz_valid=true structure check.
+    # Minimal valid DOS header + PE signature for F08 bounded validation.
+    # Layout: 64-byte DOS stub, e_lfanew=64, PE\0\0 at offset 64.
+    $bytes = New-Object byte[] 68
+    $bytes[0] = 0x4D; $bytes[1] = 0x5A # MZ
+    $eLfanewBytes = [BitConverter]::GetBytes([int32]64)
+    [Array]::Copy($eLfanewBytes, 0, $bytes, 0x3C, 4) # e_lfanew
+    $bytes[64] = 0x50; $bytes[65] = 0x45; $bytes[66] = 0x00; $bytes[67] = 0x00 # PE\0\0
+    [System.IO.File]::WriteAllBytes($Path, $bytes)
+}
+
+function New-MzOnlyMalformed {
+    param([string]$Path)
+    # MZ-prefixed but missing valid PE signature / e_lfanew (TC-INF-003-O).
     $bytes = New-Object byte[] 64
     $bytes[0] = 0x4D; $bytes[1] = 0x5A
+    # e_lfanew left as 0 => out of bounds / invalid
     [System.IO.File]::WriteAllBytes($Path, $bytes)
 }
 
@@ -130,9 +144,9 @@ function New-ToolFixtureDir {
         Set-Content -LiteralPath $tester -Value "not-an-executable" -Encoding ASCII
     }
     else {
-        New-MzStub -Path $editor
-        New-MzStub -Path $term
-        New-MzStub -Path $tester
+        New-MinimalPeStub -Path $editor
+        New-MinimalPeStub -Path $term
+        New-MinimalPeStub -Path $tester
         if (-not $EmptyVersions) {
             Write-FixtureMeta -ExePath $editor -FileVersion $EditorVer -ProductName "MetaQuotes Language 5 Editor" -OriginalFilename "metaeditor64.exe"
             Write-FixtureMeta -ExePath $term -FileVersion $TermVer -ProductName "MetaTrader 5 Client Terminal" -OriginalFilename "terminal64.exe"
@@ -144,6 +158,21 @@ function New-ToolFixtureDir {
             Write-FixtureMeta -ExePath $tester -FileVersion "" -ProductName "MetaTester" -OriginalFilename "metatester64.exe"
         }
     }
+    return [pscustomobject]@{ Dir = $Dir; Editor = $editor; Terminal = $term; Tester = $tester }
+}
+
+function New-MzMalformedFixtureDir {
+    param([string]$Dir)
+    New-Item -ItemType Directory -Force -Path $Dir | Out-Null
+    $editor = Join-Path $Dir "metaeditor64.exe"
+    $term = Join-Path $Dir "terminal64.exe"
+    $tester = Join-Path $Dir "metatester64.exe"
+    New-MzOnlyMalformed -Path $editor
+    New-MzOnlyMalformed -Path $term
+    New-MzOnlyMalformed -Path $tester
+    Write-FixtureMeta -ExePath $editor -FileVersion "5.0.0.6230" -ProductName "MetaQuotes Language 5 Editor" -OriginalFilename "metaeditor64.exe"
+    Write-FixtureMeta -ExePath $term -FileVersion "5.0.0.6230" -ProductName "MetaTrader 5 Client Terminal" -OriginalFilename "terminal64.exe"
+    Write-FixtureMeta -ExePath $tester -FileVersion "5.0.0.6230" -ProductName "MetaTester" -OriginalFilename "metatester64.exe"
     return [pscustomobject]@{ Dir = $Dir; Editor = $editor; Terminal = $term; Tester = $tester }
 }
 
@@ -176,18 +205,25 @@ if (-not $cleanWorktree) {
     New-Item -ItemType Directory -Force -Path $EvidenceDir | Out-Null
     Add-Result "TC-INF-003-M" "Dirty pre-test worktree => evidence binding rejected" ("porcelain=<<$statusPorcelain>>") "PASS"
     Add-Result "TC-INF-003-BIND" "Evidence bound only on clean tree with valid SHA" "rejected_dirty_worktree" "PASS"
-    # Still record rejection artifacts
+    # Still record rejection artifacts — must NOT claim verified evidence success
     $csvPath = Join-Path $EvidenceDir "unit_test_results.csv"
     $results | Export-Csv -LiteralPath $csvPath -NoTypeInformation -Encoding UTF8
     $manifest = [ordered]@{
         issue = 3; task_id = "INF-003"; run_id = (Split-Path -Leaf $EvidenceDir)
         tested_commit = $testedSha; binding_rejected = $true; reason = "dirty_worktree"
+        verified_evidence_manifest = $false
+        dirty_tree_probe_only = [bool]$DirtyTreeProbeOnly
+        porcelain = $statusPorcelain
         tests = @($results | ForEach-Object { [ordered]@{ id = $_.TestId; status = $_.Status; expected = $_.Expected; actual = $_.Actual } })
     }
     ($manifest | ConvertTo-Json -Depth 6) | Set-Content (Join-Path $EvidenceDir "run_manifest.json") -Encoding UTF8
     "dirty worktree binding rejected" | Set-Content (Join-Path $EvidenceDir "test_summary.md") -Encoding UTF8
     Write-Output "BINDING_REJECTED dirty worktree"
     exit 1
+}
+
+if ($DirtyTreeProbeOnly) {
+    throw "DirtyTreeProbeOnly requires a dirty worktree; refusing to fabricate PASS on a clean tree."
 }
 
 New-Item -ItemType Directory -Force -Path $EvidenceDir | Out-Null
@@ -213,12 +249,13 @@ $runA = Invoke-DoctorCapture -OutDir $outA -DoctorParams @{
 $jsonA = $null
 if (Test-Path $runA.JsonPath) { $jsonA = Get-Content $runA.JsonPath -Raw -Encoding UTF8 | ConvertFrom-Json }
 if ($runA.ExitCode -eq 0 -and $jsonA -and $jsonA.overall_status -eq "PASS" -and $jsonA.readiness.verified_preflight_passed -eq $true -and
-    $jsonA.metaeditor.pe_mz_valid -eq $true -and $jsonA.tester_agents.operational_agent_ready -eq $false) {
+    $jsonA.metaeditor.pe_mz_valid -eq $true -and $jsonA.tester_agents.operational_agent_ready -eq $false -and
+    $jsonA.selected_installation.data_mapping_verified -eq $true -and $jsonA.readiness.synthetic_fixture_present -ne $true) {
     Add-Result "TC-INF-003-A" "Strict preflight on real Windows install captures validated tools/Git; no operational agent claim" `
-        ("exit=0 meta={0} ver={1} selected={2} data={3} discovered_agents={4} operational_ready={5}" -f `
+        ("exit=0 meta={0} ver={1} selected={2} data={3} discovered_agents={4} operational_ready={5} mapping={6}" -f `
             $jsonA.metaeditor.path, $jsonA.metaeditor.file_version, $jsonA.selected_installation.install_root, `
             $jsonA.selected_installation.data_directory, $jsonA.tester_agents.discovered_agent_directory_count, `
-            $jsonA.tester_agents.operational_agent_ready) "PASS"
+            $jsonA.tester_agents.operational_agent_ready, $jsonA.selected_installation.data_mapping_status) "PASS"
 }
 elseif ($runA.ExitCode -ne 0 -and $jsonA -and $jsonA.overall_status -in @("BLOCKED", "FAIL")) {
     Add-Result "TC-INF-003-A" "Strict preflight on real Windows install captures validated tools/Git; no operational agent claim" `
@@ -404,10 +441,6 @@ if ($runL.ExitCode -ne 0 -and $jsonL -and (($jsonL.issues | Out-String) -match "
 }
 else { Add-Result "TC-INF-003-L" "Empty version metadata => nonzero FAIL/BLOCKED" ("exit={0}" -f $runL.ExitCode) "FAIL" }
 
-# ---------- TC-INF-003-M dirty worktree (simulated assertion already passed via clean gate; add explicit PASS note) ----------
-Add-Result "TC-INF-003-M" "Dirty pre-test worktree => evidence binding rejected" `
-    ("pre_test_clean=True; harness rejects dirty trees before artifact generation; tested_sha={0}" -f $testedSha) "PASS"
-
 # ---------- TC-INF-003-N invalid MinAgentDirectories ----------
 $outN = Join-Path $EvidenceDir "tc-n"
 $runN = Invoke-DoctorCapture -OutDir $outN -DoctorParams @{
@@ -421,6 +454,152 @@ if ($runN.ExitCode -ne 0 -and ($stdoutN -match "Invalid MinAgentDirectories" -or
     Add-Result "TC-INF-003-N" "Invalid MinAgentDirectories => explicit validation failure" ("exit={0}" -f $runN.ExitCode) "PASS"
 }
 else { Add-Result "TC-INF-003-N" "Invalid MinAgentDirectories => explicit validation failure" ("exit={0}" -f $runN.ExitCode) "FAIL" }
+
+# ---------- TC-INF-003-O MZ-prefixed malformed PE rejected ----------
+$outO = Join-Path $EvidenceDir "tc-o"
+$fxO = New-MzMalformedFixtureDir -Dir (Join-Path $env:TEMP ("inf003-mzmalformed-" + [guid]::NewGuid().ToString("N")))
+$runO = Invoke-DoctorCapture -OutDir $outO -DoctorParams @{
+    RepoRoot = $RepoRoot; OutputDir = $outO; InstallRoot = $fxO.Dir
+    ValidateExecutables = $true; RequireTools = $true
+    AllowSyntheticVersionFixtures = $true; SkipGit = $true
+}
+$jsonO = $null
+if (Test-Path $runO.JsonPath) { $jsonO = Get-Content $runO.JsonPath -Raw -Encoding UTF8 | ConvertFrom-Json }
+if ($runO.ExitCode -ne 0 -and $jsonO -and $jsonO.metaeditor.pe_mz_valid -eq $false -and (($jsonO.issues | Out-String) -match "Invalid executable structure")) {
+    Add-Result "TC-INF-003-O" "MZ-prefixed malformed executable must be rejected" `
+        ("exit={0} pe_mz_valid={1}" -f $runO.ExitCode, $jsonO.metaeditor.pe_mz_valid) "PASS"
+}
+else { Add-Result "TC-INF-003-O" "MZ-prefixed malformed executable must be rejected" ("exit={0}" -f $runO.ExitCode) "FAIL" }
+
+# ---------- TC-INF-003-P StrictPreflight + synthetic fixtures rejected ----------
+$outP = Join-Path $EvidenceDir "tc-p"
+$fxP = New-ToolFixtureDir -Dir (Join-Path $env:TEMP ("inf003-synth-strict-" + [guid]::NewGuid().ToString("N"))) -EditorVer "5.0.0.6230" -TermVer "5.0.0.6230" -TesterVer "5.0.0.6230"
+$emptyAgentsP = Join-Path $env:TEMP ("inf003-p-agents-" + [guid]::NewGuid().ToString("N"))
+New-Item -ItemType Directory -Force -Path $emptyAgentsP | Out-Null
+# Create a dummy Agent dir so agent gate is not the first failure; synthetic rejection must be explicit.
+New-Item -ItemType Directory -Force -Path (Join-Path $emptyAgentsP "Agent-0001") | Out-Null
+$runP = Invoke-DoctorCapture -OutDir $outP -DoctorParams @{
+    RepoRoot = $RepoRoot; OutputDir = $outP; InstallRoot = $fxP.Dir
+    TesterRoot = $emptyAgentsP; TerminalDataRoot = (Join-Path $env:TEMP ("inf003-p-term-" + [guid]::NewGuid().ToString("N")))
+    StrictPreflight = $true; AllowSyntheticVersionFixtures = $true; MinAgentDirectories = 1
+}
+$jsonP = $null
+if (Test-Path $runP.JsonPath) { $jsonP = Get-Content $runP.JsonPath -Raw -Encoding UTF8 | ConvertFrom-Json }
+$stdoutP = Get-Content $runP.StdOutPath -Raw -Encoding UTF8
+if ($runP.ExitCode -ne 0 -and $jsonP -and $jsonP.readiness.verified_preflight_passed -ne $true -and `
+    (($jsonP.issues | Out-String) -match "StrictPreflight rejects AllowSyntheticVersionFixtures" -or $stdoutP -match "StrictPreflight rejects AllowSyntheticVersionFixtures")) {
+    Add-Result "TC-INF-003-P" "Strict preflight with synthetic fixtures => nonzero + explicit rejection" `
+        ("exit={0} verified_passed={1}" -f $runP.ExitCode, $jsonP.readiness.verified_preflight_passed) "PASS"
+}
+else { Add-Result "TC-INF-003-P" "Strict preflight with synthetic fixtures => nonzero + explicit rejection" ("exit={0}" -f $runP.ExitCode) "FAIL" }
+
+# ---------- TC-INF-003-Q missing data-directory mapping ----------
+$outQ = Join-Path $EvidenceDir "tc-q"
+$emptyTermQ = Join-Path $env:TEMP ("inf003-q-term-" + [guid]::NewGuid().ToString("N"))
+New-Item -ItemType Directory -Force -Path $emptyTermQ | Out-Null
+$runQ = Invoke-DoctorCapture -OutDir $outQ -DoctorParams @{
+    RepoRoot = $RepoRoot; OutputDir = $outQ; InstallRoot = $realInstall
+    TerminalDataRoot = $emptyTermQ; RequireTools = $true; SkipGit = $true
+}
+$jsonQ = $null
+if (Test-Path $runQ.JsonPath) { $jsonQ = Get-Content $runQ.JsonPath -Raw -Encoding UTF8 | ConvertFrom-Json }
+if ($runQ.ExitCode -ne 0 -and $jsonQ -and $jsonQ.selected_installation.data_mapping_status -eq "missing" -and `
+    $jsonQ.selected_installation.data_mapping_verified -ne $true -and `
+    (($jsonQ.issues | Out-String) -match "No terminal data directory origin\.txt maps")) {
+    Add-Result "TC-INF-003-Q" "Missing selected-install data-directory mapping => explicit rejection" `
+        ("exit={0} status={1} reason={2}" -f $runQ.ExitCode, $jsonQ.selected_installation.data_mapping_status, $jsonQ.selected_installation.data_mapping_reason) "PASS"
+}
+else { Add-Result "TC-INF-003-Q" "Missing selected-install data-directory mapping => explicit rejection" ("exit={0}" -f $runQ.ExitCode) "FAIL" }
+
+# ---------- TC-INF-003-R ambiguous data-directory mapping ----------
+$outR = Join-Path $EvidenceDir "tc-r"
+$termRootR = Join-Path $env:TEMP ("inf003-r-term-" + [guid]::NewGuid().ToString("N"))
+$id1 = "AAAA1111BBBB2222CCCC3333DDDD4444"
+$id2 = "EEEE5555FFFF6666AAAA7777BBBB8888"
+$dir1 = Join-Path $termRootR $id1
+$dir2 = Join-Path $termRootR $id2
+New-Item -ItemType Directory -Force -Path $dir1 | Out-Null
+New-Item -ItemType Directory -Force -Path $dir2 | Out-Null
+Set-Content -LiteralPath (Join-Path $dir1 "origin.txt") -Value $realInstall -Encoding ASCII
+Set-Content -LiteralPath (Join-Path $dir2 "origin.txt") -Value $realInstall -Encoding ASCII
+$runR = Invoke-DoctorCapture -OutDir $outR -DoctorParams @{
+    RepoRoot = $RepoRoot; OutputDir = $outR; InstallRoot = $realInstall
+    TerminalDataRoot = $termRootR; RequireTools = $true; SkipGit = $true
+}
+$jsonR = $null
+if (Test-Path $runR.JsonPath) { $jsonR = Get-Content $runR.JsonPath -Raw -Encoding UTF8 | ConvertFrom-Json }
+if ($runR.ExitCode -ne 0 -and $jsonR -and $jsonR.selected_installation.data_mapping_status -eq "ambiguous" -and `
+    $jsonR.selected_installation.data_mapping_verified -ne $true -and `
+    $null -eq $jsonR.selected_installation.data_directory -and `
+    (($jsonR.issues | Out-String) -match "Ambiguous terminal data-directory mapping")) {
+    Add-Result "TC-INF-003-R" "Ambiguous selected-install data-directory mapping => refuse first-match" `
+        ("exit={0} status={1} reason={2}" -f $runR.ExitCode, $jsonR.selected_installation.data_mapping_status, $jsonR.selected_installation.data_mapping_reason) "PASS"
+}
+else { Add-Result "TC-INF-003-R" "Ambiguous selected-install data-directory mapping => refuse first-match" ("exit={0}" -f $runR.ExitCode) "FAIL" }
+
+# ---------- TC-INF-003-M real dirty-tree negative test in isolated worktree ----------
+$outM = Join-Path $EvidenceDir "tc-m"
+New-Item -ItemType Directory -Force -Path $outM | Out-Null
+$wtPath = Join-Path $env:TEMP ("inf003-dirty-wt-" + [guid]::NewGuid().ToString("N"))
+$wtEvidence = Join-Path $outM "probe-evidence"
+$mOk = $false
+$mActual = "not_executed"
+$userStatusBefore = (Invoke-GitChecked -RepoPath $RepoRoot -GitArgs @("status", "--porcelain=v1")).Output
+try {
+    $addWt = Invoke-GitChecked -RepoPath $RepoRoot -GitArgs @("worktree", "add", "--detach", $wtPath, $testedSha)
+    if (-not $addWt.Ok) { throw "worktree add failed: $($addWt.Error)" }
+    $dirtyMarker = Join-Path $wtPath "INF003-DIRTY-MARKER.txt"
+    Set-Content -LiteralPath $dirtyMarker -Value "intentional dirty tree for TC-INF-003-M" -Encoding UTF8
+    $wtStatus = Invoke-GitChecked -RepoPath $wtPath -GitArgs @("status", "--porcelain=v1")
+    if ([string]::IsNullOrWhiteSpace($wtStatus.Output)) { throw "expected dirty worktree but porcelain empty" }
+    $probeScript = Join-Path $wtPath "tests\inf-003\Test-EnvDoctor.ps1"
+    $psi = New-Object System.Diagnostics.ProcessStartInfo
+    $psi.FileName = "powershell.exe"
+    $psi.Arguments = "-NoProfile -ExecutionPolicy Bypass -File `"$probeScript`" -RepoRoot `"$wtPath`" -EvidenceDir `"$wtEvidence`" -DirtyTreeProbeOnly"
+    $psi.UseShellExecute = $false
+    $psi.RedirectStandardOutput = $true
+    $psi.RedirectStandardError = $true
+    $psi.CreateNoWindow = $true
+    $psi.WorkingDirectory = $wtPath
+    $proc = New-Object System.Diagnostics.Process
+    $proc.StartInfo = $psi
+    [void]$proc.Start()
+    $mOut = $proc.StandardOutput.ReadToEnd()
+    $mErr = $proc.StandardError.ReadToEnd()
+    $proc.WaitForExit()
+    Set-Content -LiteralPath (Join-Path $outM "probe_stdout.log") -Value $mOut -Encoding UTF8
+    Set-Content -LiteralPath (Join-Path $outM "probe_stderr.log") -Value $mErr -Encoding UTF8
+    $probeManifestPath = Join-Path $wtEvidence "run_manifest.json"
+    $probeManifest = $null
+    if (Test-Path -LiteralPath $probeManifestPath) {
+        $probeManifest = Get-Content -LiteralPath $probeManifestPath -Raw -Encoding UTF8 | ConvertFrom-Json
+        Copy-Item -LiteralPath $probeManifestPath -Destination (Join-Path $outM "probe_run_manifest.json") -Force
+    }
+    $userStatusAfter = (Invoke-GitChecked -RepoPath $RepoRoot -GitArgs @("status", "--porcelain=v1")).Output
+    $userUntouched = ($userStatusBefore -eq $userStatusAfter) -and [string]::IsNullOrWhiteSpace($userStatusAfter)
+    $noVerifiedSuccess = ($null -eq $probeManifest) -or ($probeManifest.binding_rejected -eq $true) -or ($probeManifest.verified_evidence_manifest -eq $false)
+    if ($proc.ExitCode -ne 0 -and $probeManifest -and $probeManifest.binding_rejected -eq $true -and $noVerifiedSuccess -and $userUntouched -and ($mOut -match "BINDING_REJECTED")) {
+        $mOk = $true
+        $mActual = ("exit={0}; dirty_porcelain=<<{1}>>; binding_rejected=true; user_untouched={2}" -f $proc.ExitCode, $wtStatus.Output, $userUntouched)
+    }
+    else {
+        $mActual = ("exit={0}; binding_rejected={1}; user_untouched={2}; out=<<{3}>>" -f $proc.ExitCode, $(if ($probeManifest) { $probeManifest.binding_rejected } else { "n/a" }), $userUntouched, $mOut.Substring(0, [Math]::Min(200, $mOut.Length)))
+    }
+}
+catch {
+    $mActual = "exception: $($_.Exception.Message)"
+}
+finally {
+    try { [void](Invoke-GitChecked -RepoPath $RepoRoot -GitArgs @("worktree", "remove", "--force", $wtPath)) } catch {}
+    try { if (Test-Path -LiteralPath $wtPath) { Remove-Item -LiteralPath $wtPath -Recurse -Force -ErrorAction SilentlyContinue } } catch {}
+    try { [void](Invoke-GitChecked -RepoPath $RepoRoot -GitArgs @("worktree", "prune")) } catch {}
+}
+if ($mOk) {
+    Add-Result "TC-INF-003-M" "Dirty pre-test worktree => evidence binding rejected (isolated worktree negative test)" $mActual "PASS"
+}
+else {
+    Add-Result "TC-INF-003-M" "Dirty pre-test worktree => evidence binding rejected (isolated worktree negative test)" $mActual "FAIL"
+}
 
 # ---------- Regression ----------
 $tradingHits = @(Get-ChildItem -LiteralPath $RepoRoot -Recurse -File -EA SilentlyContinue | Where-Object { $_.Extension -match '^\.(mq5|mqh|ex5)$' })
@@ -475,7 +654,8 @@ $manifest = [ordered]@{
     run_id = $runLeaf
     branch = $branch
     baseline_commit = "a428d1cb5a3fc20b0f38fb1bb29653570e3fda2c"
-    reviewed_prior_head = "003f17eda16972f94e40bebacb0d82014d2654dd"
+    reviewed_prior_head = "46518b3c6a696171ff7ef26afe2c320cddb9feda"
+    prior_tested_r3 = "6564d06b964d8af1aa606d3d3ba25618e2acaaa7"
     tested_commit = $testedSha
     origin_main_at_claim = "aebe8cd62aaf15f84d4001f15a8b828c92202b77"
     execution_timestamp_utc = $started.ToString("o")
@@ -486,13 +666,17 @@ $manifest = [ordered]@{
     ex5_hash = "N/A — no EX5 produced"
     authorization = "Product Owner scoped approval 2026-11-27 for REQ-INF-003 only; INF-001 remains REWORK"
     pr_url = "https://github.com/mjshahabadi/AI_Bot_Trade/pull/15"
-    cto_decision_prior = "REWORK REQUIRED"
+    cto_decision_prior = "REWORK REQUIRED (r3 findings F08-F12)"
+    rework_round = "r4"
+    expected_test_count = 21
     acceptance_status = "PENDING independent GPT CTO review — not approved"
     known_limitations = @(
         "SkipGit is test-only and never used as strict readiness evidence.",
         "Synthetic version fixtures are marked synthetic_fixture=true and are not real toolchain evidence.",
+        "StrictPreflight rejects AllowSyntheticVersionFixtures; synthetic metadata never yields verified_preflight_passed=true.",
         "Strict preflight verified gates do not claim Strategy Tester operational agent readiness.",
-        "Multiple MT5 installs require explicit -InstallRoot under StrictPreflight."
+        "Multiple MT5 installs require explicit -InstallRoot under StrictPreflight.",
+        "Missing or ambiguous install↔data-directory mapping fails closed and never claims verified mapping."
     )
     artifact_links = [ordered]@{
         manifest = "artifacts/issue-3/$runLeaf/run_manifest.json"
@@ -503,17 +687,17 @@ $manifest = [ordered]@{
     }
     acceptance_criteria = @(
         [ordered]@{ id = "AC-001"; tests = @("TC-INF-003-A", "TC-INF-003-C") }
-        [ordered]@{ id = "AC-002"; tests = @("TC-INF-003-B", "TC-INF-003-D", "TC-INF-003-E", "TC-INF-003-F", "TC-INF-003-G", "TC-INF-003-H", "TC-INF-003-I", "TC-INF-003-J", "TC-INF-003-K", "TC-INF-003-L", "TC-INF-003-N") }
+        [ordered]@{ id = "AC-002"; tests = @("TC-INF-003-B", "TC-INF-003-D", "TC-INF-003-E", "TC-INF-003-F", "TC-INF-003-G", "TC-INF-003-H", "TC-INF-003-I", "TC-INF-003-J", "TC-INF-003-K", "TC-INF-003-L", "TC-INF-003-N", "TC-INF-003-O", "TC-INF-003-P", "TC-INF-003-Q", "TC-INF-003-R") }
         [ordered]@{ id = "AC-003"; tests = @("TC-INF-003-BIND", "TC-INF-003-M") }
     )
     tests = @($results | ForEach-Object { [ordered]@{ id = $_.TestId; status = $_.Status; expected = $_.Expected; actual = $_.Actual } })
     failure_count = $failures.Count
-    evidence_binding_note = "Tests executed only after clean pre-test worktree verification. Evidence publication commit is separate from tested_commit."
+    evidence_binding_note = "Tests executed only after clean pre-test worktree verification. TC-M executes a real dirty-tree probe in an isolated git worktree. Evidence publication commit is separate from tested_commit."
 }
 ($manifest | ConvertTo-Json -Depth 10) | Set-Content (Join-Path $EvidenceDir "run_manifest.json") -Encoding UTF8
 
 $summary = @"
-# INF-003 Test Summary (CTO REWORK)
+# INF-003 Test Summary (CTO REWORK r4)
 
 - Run ID: $runLeaf
 - Tested SHA: $testedSha
@@ -522,6 +706,7 @@ $summary = @"
 - Pre-test clean: $cleanWorktree
 - Timestamp UTC: $($started.ToString('o'))
 - Failures: $($failures.Count)
+- Distinct tests: $($results.Count) (expected 21)
 - PR: https://github.com/mjshahabadi/AI_Bot_Trade/pull/15
 - Acceptance: PENDING (not approved)
 

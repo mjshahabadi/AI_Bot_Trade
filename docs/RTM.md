@@ -14,7 +14,7 @@ INF-001 starts the matrix. REQ-INF-001 remains PROPOSED pending GPT CTO acceptan
 |---|---|---|---|---|---|
 | REQ-INF-001 | RULE-GOV-001 | #1 | Charter, Test Policy, DoD, canonical template, this RTM | PROPOSED pending GPT CTO acceptance | None until acceptance |
 | REQ-INF-002 | RULE-GOV-002 | #2 | Not modified | NOT APPROVED | None |
-| REQ-INF-003 | RULE-ENV-001 | #3 | Env doctor StrictPreflight + TC-INF-003-A..N + REG-INF-003-1/2 (INF-003 scoped; PR #15 CTO rework) | APPROVED scoped by Product Owner 2026-11-27; does NOT ratify INF-001 | Scoped execution authority for Issue #3 only; acceptance PENDING GPT CTO |
+| REQ-INF-003 | RULE-ENV-001 | #3 | Env doctor StrictPreflight + TC-INF-003-A..R + REG-INF-003-1/2 + BIND (21 cases; PR #15 CTO rework r4). Tested SHA pending evidence commit; Run `run-20261127-inf003-r4`; Evidence: `artifacts/issue-3/run-20261127-inf003-r4/`. Acceptance **PENDING**. | APPROVED scoped by Product Owner 2026-11-27; does NOT ratify INF-001; acceptance PENDING GPT CTO | Scoped execution authority for Issue #3 only; acceptance PENDING GPT CTO |
 | REQ-INF-004 | Not read | #4 | Not modified | NOT APPROVED | None |
 | REQ-INF-005 | Not read | #5 | Not modified | NOT APPROVED | None |
 | REQ-INF-006 | Not read | #6 | Not modified | NOT APPROVED | None |
