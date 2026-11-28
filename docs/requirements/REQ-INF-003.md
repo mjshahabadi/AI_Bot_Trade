@@ -30,7 +30,7 @@ No trading rule is created, changed, or implied. No live orders. No Strategy Tes
 | Host | `WIN-8F5G6TCFF1J` (local Windows / PS 5.1) |
 | Suite result | **21/21 PASS** (TC-A..R + REG-1/2 + BIND); TC-M dirty-worktree negative verified |
 | SHA256 | independent recount OK=78 MISMATCHES=0 |
-| Evidence publication SHA | pending commit after this docs update (separate from tested_commit) |
+| Evidence publication SHA | `7c906a18055e698a7f39321e904ff2ed2c864f41` (separate from tested_commit) |
 | Branch | `test/issue-3-inf-003-env-doctor` |
 | PR | https://github.com/mjshahabadi/AI_Bot_Trade/pull/15 |
 | Acceptance | PENDING independent GPT CTO review — **not approved** |
