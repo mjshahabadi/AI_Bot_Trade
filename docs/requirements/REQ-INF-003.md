@@ -29,27 +29,31 @@ No trading rule is created, changed, or implied. No live orders. No Strategy Tes
 | Tested SHA | `ca5cc62351146d6216dc7a518a4b6c8300823a69` |
 | Host | `WIN-8F5G6TCFF1J` (local Windows / PS 5.1) |
 | Suite result | **21/21 PASS** (TC-A..R + REG-1/2 + BIND); TC-M dirty-worktree negative verified |
-| SHA256 | independent recount OK=78 MISMATCHES=0 |
-| Evidence publication SHA | `7c906a18055e698a7f39321e904ff2ed2c864f41` (separate from tested_commit) |
+| Historical Windows SHA256 list | `evidence_sha256.txt` — 78 entries — **preserved / not overwritten** (LF↔CRLF historical note per CTO F14) |
+| Canonical Git-blob SHA256 (F14) | `evidence_sha256_git_blobs.txt` — **82/82 matches / 0 mismatches** via `git cat-file` blob bytes at reviewed HEAD `9f9f1daef0620d3f82dc05a080f29b402251673e` |
+| Evidence publication SHA (r4 Windows) | `7c906a18055e698a7f39321e904ff2ed2c864f41` (separate from tested_commit) |
+| F14 supplemental publication SHA | pending commit publishing git-blob manifest + verify (separate from tested_commit) |
 | Branch | `test/issue-3-inf-003-env-doctor` |
 | PR | https://github.com/mjshahabadi/AI_Bot_Trade/pull/15 |
 | Acceptance | PENDING independent GPT CTO review — **not approved** |
-| Prior reviewed HEAD | `46518b3c6a696171ff7ef26afe2c320cddb9feda` |
+| Prior reviewed HEAD (pre-F14) | `9f9f1daef0620d3f82dc05a080f29b402251673e` |
 | Prior remote HEAD at handoff | `49aabaa28ca1486ab857fcdc72c867561bd3bf20` |
 | Prior tested r3 | `6564d06b964d8af1aa606d3d3ba25618e2acaaa7` |
 
 ### Tests (expected 21)
 
-TC-INF-003-A..R, REG-INF-003-1, REG-INF-003-2, TC-INF-003-BIND — all **PASS** on tested SHA above.
+TC-INF-003-A..R, REG-INF-003-1, REG-INF-003-2, TC-INF-003-BIND — all **PASS** on tested SHA above. No suite rerun for F14.
 
 ### Artifact links
 
 - `artifacts/issue-3/run-20261127-inf003-r4/run_manifest.json`
 - `artifacts/issue-3/run-20261127-inf003-r4/unit_test_results.csv`
 - `artifacts/issue-3/run-20261127-inf003-r4/test_summary.md`
-- `artifacts/issue-3/run-20261127-inf003-r4/evidence_sha256.txt`
+- `artifacts/issue-3/run-20261127-inf003-r4/evidence_sha256.txt` (historical Windows list; preserved)
 - `artifacts/issue-3/run-20261127-inf003-r4/checksum_independent_verify.txt`
 - `artifacts/issue-3/run-20261127-inf003-r4/cto_findings_r4.md`
+- `artifacts/issue-3/run-20261127-inf003-r4/evidence_sha256_git_blobs.txt` (F14 canonical Git-blob SHA256; 82 entries)
+- `artifacts/issue-3/run-20261127-inf003-r4/evidence_sha256_git_blobs_verify.txt` (F14 verification report; 82/82)
 
 ### Known limitations
 
