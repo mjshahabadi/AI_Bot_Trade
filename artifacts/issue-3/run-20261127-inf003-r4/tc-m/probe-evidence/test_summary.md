@@ -1,0 +1,1 @@
+﻿dirty worktree binding rejected

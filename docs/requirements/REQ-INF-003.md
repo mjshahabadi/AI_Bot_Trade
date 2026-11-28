@@ -26,17 +26,21 @@ No trading rule is created, changed, or implied. No live orders. No Strategy Tes
 | Field | Value |
 |---|---|
 | Run ID | `run-20261127-inf003-r4` |
-| Source / intended tested SHA | `045749ff2f964b9831663b242c830aa6d75b4d27` |
-| Evidence publication SHA | PENDING — Windows host suite not yet executed from this managed cloud runtime |
+| Tested SHA | `ca5cc62351146d6216dc7a518a4b6c8300823a69` |
+| Host | `WIN-8F5G6TCFF1J` (local Windows / PS 5.1) |
+| Suite result | **21/21 PASS** (TC-A..R + REG-1/2 + BIND); TC-M dirty-worktree negative verified |
+| SHA256 | independent recount OK=78 MISMATCHES=0 |
+| Evidence publication SHA | pending commit after this docs update (separate from tested_commit) |
 | Branch | `test/issue-3-inf-003-env-doctor` |
 | PR | https://github.com/mjshahabadi/AI_Bot_Trade/pull/15 |
 | Acceptance | PENDING independent GPT CTO review — **not approved** |
 | Prior reviewed HEAD | `46518b3c6a696171ff7ef26afe2c320cddb9feda` |
+| Prior remote HEAD at handoff | `49aabaa28ca1486ab857fcdc72c867561bd3bf20` |
 | Prior tested r3 | `6564d06b964d8af1aa606d3d3ba25618e2acaaa7` |
 
 ### Tests (expected 21)
 
-TC-INF-003-A..R, REG-INF-003-1, REG-INF-003-2, TC-INF-003-BIND.
+TC-INF-003-A..R, REG-INF-003-1, REG-INF-003-2, TC-INF-003-BIND — all **PASS** on tested SHA above.
 
 ### Artifact links
 

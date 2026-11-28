@@ -1,0 +1,252 @@
+﻿{
+    "schema":  "ai-bot-trade.env-doctor.v1.3",
+    "task_id":  "INF-003",
+    "requirement_id":  "REQ-INF-003",
+    "rule_id":  "RULE-ENV-001",
+    "timestamp_utc":  "2026-11-28T02:24:20.7396062Z",
+    "host":  "WIN-8F5G6TCFF1J",
+    "user":  "Administrator",
+    "os":  "Microsoft Windows NT 10.0.17763.0",
+    "powershell":  "5.1.17763.9376",
+    "working_directory":  "C:\\Project\\ai_bot_trade_inf003",
+    "repo_root":  "C:\\Project\\ai_bot_trade_inf003",
+    "overall_status":  "FAIL",
+    "issues":  [
+                   "Ambiguous terminal data-directory mapping for install root C:\\Users\\ADMINI~1\\AppData\\Local\\Temp\\2\\inf003-r-install-093077541d3a43218896b15176779040; matches=2 terminals=AAAA1111BBBB2222CCCC3333DDDD4444,EEEE5555FFFF6666AAAA7777BBBB8888. Refusing silent first-match selection."
+               ],
+    "readiness":  {
+                      "mode":  "inventory_only",
+                      "inventory_only":  true,
+                      "verified_environment_preflight":  false,
+                      "verified_preflight_passed":  false,
+                      "synthetic_fixture_present":  true,
+                      "operational_agent_ready":  false,
+                      "note":  "verified_environment_preflight asserts tool/Git/agent-directory/build gates only. It does not assert Strategy Tester operational readiness. Synthetic fixtures never satisfy verified preflight."
+                  },
+    "selected_installation":  {
+                                  "install_root":  "C:\\Users\\ADMINI~1\\AppData\\Local\\Temp\\2\\inf003-r-install-093077541d3a43218896b15176779040",
+                                  "data_directory":  null,
+                                  "terminal_id":  null,
+                                  "selection_note":  "explicit_InstallRoot",
+                                  "ambiguous":  true,
+                                  "discovered_roots":  [
+                                                           "C:\\Program Files\\MetaTrader 5",
+                                                           "C:\\MT5-Cursor-Test"
+                                                       ],
+                                  "data_mapping_status":  "ambiguous",
+                                  "data_mapping_reason":  "Ambiguous terminal data-directory mapping for install root C:\\Users\\ADMINI~1\\AppData\\Local\\Temp\\2\\inf003-r-install-093077541d3a43218896b15176779040; matches=2 terminals=AAAA1111BBBB2222CCCC3333DDDD4444,EEEE5555FFFF6666AAAA7777BBBB8888. Refusing silent first-match selection.",
+                                  "data_mapping_verified":  false
+                              },
+    "install_roots_found":  [
+                                "C:\\Program Files\\MetaTrader 5",
+                                "C:\\MT5-Cursor-Test"
+                            ],
+    "install_data_mapping":  {
+                                 "install_root":  "C:\\Users\\ADMINI~1\\AppData\\Local\\Temp\\2\\inf003-r-install-093077541d3a43218896b15176779040",
+                                 "matched_terminal_ids":  [
+                                                              "AAAA1111BBBB2222CCCC3333DDDD4444",
+                                                              "EEEE5555FFFF6666AAAA7777BBBB8888"
+                                                          ],
+                                 "matches":  [
+                                                 {
+                                                     "terminal_id":  "AAAA1111BBBB2222CCCC3333DDDD4444",
+                                                     "data_path":  "C:\\Users\\Administrator\\AppData\\Local\\Temp\\2\\inf003-r-term-fd394a1136c64cf08a681410f74ee106\\AAAA1111BBBB2222CCCC3333DDDD4444",
+                                                     "origin":  "C:\\Users\\ADMINI~1\\AppData\\Local\\Temp\\2\\inf003-r-install-093077541d3a43218896b15176779040"
+                                                 },
+                                                 {
+                                                     "terminal_id":  "EEEE5555FFFF6666AAAA7777BBBB8888",
+                                                     "data_path":  "C:\\Users\\Administrator\\AppData\\Local\\Temp\\2\\inf003-r-term-fd394a1136c64cf08a681410f74ee106\\EEEE5555FFFF6666AAAA7777BBBB8888",
+                                                     "origin":  "C:\\Users\\ADMINI~1\\AppData\\Local\\Temp\\2\\inf003-r-install-093077541d3a43218896b15176779040"
+                                                 }
+                                             ],
+                                 "mapped":  true
+                             },
+    "build_consistency":  {
+                              "versions_recorded":  [
+                                                        {
+                                                            "tool":  "metaeditor",
+                                                            "file_version":  "5.0.0.6230",
+                                                            "synthetic_fixture":  true
+                                                        },
+                                                        {
+                                                            "tool":  "terminal",
+                                                            "file_version":  "5.0.0.6230",
+                                                            "synthetic_fixture":  true
+                                                        },
+                                                        {
+                                                            "tool":  "metatester",
+                                                            "file_version":  "5.0.0.6230",
+                                                            "synthetic_fixture":  true
+                                                        }
+                                                    ],
+                              "unique_versions":  [
+                                                      "5.0.0.6230"
+                                                  ],
+                              "consistent":  true,
+                              "mismatch":  false,
+                              "empty_version_present":  false
+                          },
+    "metaeditor":  {
+                       "path":  "C:\\Users\\Administrator\\AppData\\Local\\Temp\\2\\inf003-r-install-093077541d3a43218896b15176779040\\metaeditor64.exe",
+                       "exists":  true,
+                       "readable":  true,
+                       "read_error":  null,
+                       "length":  68,
+                       "last_write":  "2026-11-28T04:24:20.4045992+02:00",
+                       "file_version":  "5.0.0.6230",
+                       "product_name":  "MetaQuotes Language 5 Editor",
+                       "company_name":  "MetaQuotes Ltd.",
+                       "original_filename":  "metaeditor64.exe",
+                       "sha256":  "A62041514D88E5F81AB7810F0A637EDA55E0E552E84636FEF50665FEA71CF31D",
+                       "pe_mz_valid":  true,
+                       "product_identity_ok":  true,
+                       "version_nonempty":  true,
+                       "synthetic_fixture":  true,
+                       "validation_error":  null,
+                       "install_root":  "C:\\Users\\Administrator\\AppData\\Local\\Temp\\2\\inf003-r-install-093077541d3a43218896b15176779040"
+                   },
+    "terminal":  {
+                     "path":  "C:\\Users\\Administrator\\AppData\\Local\\Temp\\2\\inf003-r-install-093077541d3a43218896b15176779040\\terminal64.exe",
+                     "exists":  true,
+                     "readable":  true,
+                     "read_error":  null,
+                     "length":  68,
+                     "last_write":  "2026-11-28T04:24:20.4045992+02:00",
+                     "file_version":  "5.0.0.6230",
+                     "product_name":  "MetaTrader 5 Client Terminal",
+                     "company_name":  "MetaQuotes Ltd.",
+                     "original_filename":  "terminal64.exe",
+                     "sha256":  "A62041514D88E5F81AB7810F0A637EDA55E0E552E84636FEF50665FEA71CF31D",
+                     "pe_mz_valid":  true,
+                     "product_identity_ok":  true,
+                     "version_nonempty":  true,
+                     "synthetic_fixture":  true,
+                     "validation_error":  null,
+                     "install_root":  "C:\\Users\\Administrator\\AppData\\Local\\Temp\\2\\inf003-r-install-093077541d3a43218896b15176779040"
+                 },
+    "metatester":  {
+                       "path":  "C:\\Users\\Administrator\\AppData\\Local\\Temp\\2\\inf003-r-install-093077541d3a43218896b15176779040\\metatester64.exe",
+                       "exists":  true,
+                       "readable":  true,
+                       "read_error":  null,
+                       "length":  68,
+                       "last_write":  "2026-11-28T04:24:20.4066507+02:00",
+                       "file_version":  "5.0.0.6230",
+                       "product_name":  "MetaTester",
+                       "company_name":  "MetaQuotes Ltd.",
+                       "original_filename":  "metatester64.exe",
+                       "sha256":  "A62041514D88E5F81AB7810F0A637EDA55E0E552E84636FEF50665FEA71CF31D",
+                       "pe_mz_valid":  true,
+                       "product_identity_ok":  true,
+                       "version_nonempty":  true,
+                       "synthetic_fixture":  true,
+                       "validation_error":  null,
+                       "install_root":  "C:\\Users\\Administrator\\AppData\\Local\\Temp\\2\\inf003-r-install-093077541d3a43218896b15176779040"
+                   },
+    "git":  null,
+    "tester_agents":  {
+                          "root":  "C:\\Users\\Administrator\\AppData\\Roaming\\MetaQuotes\\Tester",
+                          "root_exists":  true,
+                          "discovered_agent_directories":  [
+                                                               "C:\\Users\\Administrator\\AppData\\Roaming\\MetaQuotes\\Tester\\D0E8209F77C8CF37AD8BF550E51FF075\\Agent-127.0.0.1-3000",
+                                                               "C:\\Users\\Administrator\\AppData\\Roaming\\MetaQuotes\\Tester\\D0E8209F77C8CF37AD8BF550E51FF075\\Agent-127.0.0.1-3001",
+                                                               "C:\\Users\\Administrator\\AppData\\Roaming\\MetaQuotes\\Tester\\D0E8209F77C8CF37AD8BF550E51FF075\\Agent-127.0.0.1-3002",
+                                                               "C:\\Users\\Administrator\\AppData\\Roaming\\MetaQuotes\\Tester\\D0E8209F77C8CF37AD8BF550E51FF075\\Agent-127.0.0.1-3003",
+                                                               "C:\\Users\\Administrator\\AppData\\Roaming\\MetaQuotes\\Tester\\D0E8209F77C8CF37AD8BF550E51FF075\\Agent-127.0.0.1-3004",
+                                                               "C:\\Users\\Administrator\\AppData\\Roaming\\MetaQuotes\\Tester\\D0E8209F77C8CF37AD8BF550E51FF075\\Agent-127.0.0.1-3005",
+                                                               "C:\\Users\\Administrator\\AppData\\Roaming\\MetaQuotes\\Tester\\D0E8209F77C8CF37AD8BF550E51FF075\\Agent-127.0.0.1-3006",
+                                                               "C:\\Users\\Administrator\\AppData\\Roaming\\MetaQuotes\\Tester\\D0E8209F77C8CF37AD8BF550E51FF075\\Agent-127.0.0.1-3007",
+                                                               "C:\\Users\\Administrator\\AppData\\Roaming\\MetaQuotes\\Tester\\D0E8209F77C8CF37AD8BF550E51FF075\\Agent-127.0.0.1-3008",
+                                                               "C:\\Users\\Administrator\\AppData\\Roaming\\MetaQuotes\\Tester\\D0E8209F77C8CF37AD8BF550E51FF075\\Agent-127.0.0.1-3009",
+                                                               "C:\\Users\\Administrator\\AppData\\Roaming\\MetaQuotes\\Tester\\D0E8209F77C8CF37AD8BF550E51FF075\\Agent-127.0.0.1-3010",
+                                                               "C:\\Users\\Administrator\\AppData\\Roaming\\MetaQuotes\\Tester\\D0E8209F77C8CF37AD8BF550E51FF075\\Agent-127.0.0.1-3011",
+                                                               "C:\\Users\\Administrator\\AppData\\Roaming\\MetaQuotes\\Tester\\D1AD27F6D15DE8FBBAEAC9E06FC597E0\\Agent-127.0.0.1-3000",
+                                                               "C:\\Users\\Administrator\\AppData\\Roaming\\MetaQuotes\\Tester\\D1AD27F6D15DE8FBBAEAC9E06FC597E0\\Agent-127.0.0.1-3001",
+                                                               "C:\\Users\\Administrator\\AppData\\Roaming\\MetaQuotes\\Tester\\D1AD27F6D15DE8FBBAEAC9E06FC597E0\\Agent-127.0.0.1-3002",
+                                                               "C:\\Users\\Administrator\\AppData\\Roaming\\MetaQuotes\\Tester\\D1AD27F6D15DE8FBBAEAC9E06FC597E0\\Agent-127.0.0.1-3003",
+                                                               "C:\\Users\\Administrator\\AppData\\Roaming\\MetaQuotes\\Tester\\D1AD27F6D15DE8FBBAEAC9E06FC597E0\\Agent-127.0.0.1-3004",
+                                                               "C:\\Users\\Administrator\\AppData\\Roaming\\MetaQuotes\\Tester\\D1AD27F6D15DE8FBBAEAC9E06FC597E0\\Agent-127.0.0.1-3005",
+                                                               "C:\\Users\\Administrator\\AppData\\Roaming\\MetaQuotes\\Tester\\D1AD27F6D15DE8FBBAEAC9E06FC597E0\\Agent-127.0.0.1-3006",
+                                                               "C:\\Users\\Administrator\\AppData\\Roaming\\MetaQuotes\\Tester\\D1AD27F6D15DE8FBBAEAC9E06FC597E0\\Agent-127.0.0.1-3007"
+                                                           ],
+                          "discovered_agent_directory_count":  20,
+                          "operational_metatester_processes":  [
+
+                                                               ],
+                          "operational_metatester_process_count":  0,
+                          "operational_readiness_claimed":  false,
+                          "operational_agent_ready":  false,
+                          "classification_note":  "Discovered Agent-* directories and running metatester process presence are inventory signals only. Operational Strategy Tester agent readiness is never claimed by this doctor.",
+                          "agent_directory_count":  20,
+                          "agent_directories":  [
+                                                    "C:\\Users\\Administrator\\AppData\\Roaming\\MetaQuotes\\Tester\\D0E8209F77C8CF37AD8BF550E51FF075\\Agent-127.0.0.1-3000",
+                                                    "C:\\Users\\Administrator\\AppData\\Roaming\\MetaQuotes\\Tester\\D0E8209F77C8CF37AD8BF550E51FF075\\Agent-127.0.0.1-3001",
+                                                    "C:\\Users\\Administrator\\AppData\\Roaming\\MetaQuotes\\Tester\\D0E8209F77C8CF37AD8BF550E51FF075\\Agent-127.0.0.1-3002",
+                                                    "C:\\Users\\Administrator\\AppData\\Roaming\\MetaQuotes\\Tester\\D0E8209F77C8CF37AD8BF550E51FF075\\Agent-127.0.0.1-3003",
+                                                    "C:\\Users\\Administrator\\AppData\\Roaming\\MetaQuotes\\Tester\\D0E8209F77C8CF37AD8BF550E51FF075\\Agent-127.0.0.1-3004",
+                                                    "C:\\Users\\Administrator\\AppData\\Roaming\\MetaQuotes\\Tester\\D0E8209F77C8CF37AD8BF550E51FF075\\Agent-127.0.0.1-3005",
+                                                    "C:\\Users\\Administrator\\AppData\\Roaming\\MetaQuotes\\Tester\\D0E8209F77C8CF37AD8BF550E51FF075\\Agent-127.0.0.1-3006",
+                                                    "C:\\Users\\Administrator\\AppData\\Roaming\\MetaQuotes\\Tester\\D0E8209F77C8CF37AD8BF550E51FF075\\Agent-127.0.0.1-3007",
+                                                    "C:\\Users\\Administrator\\AppData\\Roaming\\MetaQuotes\\Tester\\D0E8209F77C8CF37AD8BF550E51FF075\\Agent-127.0.0.1-3008",
+                                                    "C:\\Users\\Administrator\\AppData\\Roaming\\MetaQuotes\\Tester\\D0E8209F77C8CF37AD8BF550E51FF075\\Agent-127.0.0.1-3009",
+                                                    "C:\\Users\\Administrator\\AppData\\Roaming\\MetaQuotes\\Tester\\D0E8209F77C8CF37AD8BF550E51FF075\\Agent-127.0.0.1-3010",
+                                                    "C:\\Users\\Administrator\\AppData\\Roaming\\MetaQuotes\\Tester\\D0E8209F77C8CF37AD8BF550E51FF075\\Agent-127.0.0.1-3011",
+                                                    "C:\\Users\\Administrator\\AppData\\Roaming\\MetaQuotes\\Tester\\D1AD27F6D15DE8FBBAEAC9E06FC597E0\\Agent-127.0.0.1-3000",
+                                                    "C:\\Users\\Administrator\\AppData\\Roaming\\MetaQuotes\\Tester\\D1AD27F6D15DE8FBBAEAC9E06FC597E0\\Agent-127.0.0.1-3001",
+                                                    "C:\\Users\\Administrator\\AppData\\Roaming\\MetaQuotes\\Tester\\D1AD27F6D15DE8FBBAEAC9E06FC597E0\\Agent-127.0.0.1-3002",
+                                                    "C:\\Users\\Administrator\\AppData\\Roaming\\MetaQuotes\\Tester\\D1AD27F6D15DE8FBBAEAC9E06FC597E0\\Agent-127.0.0.1-3003",
+                                                    "C:\\Users\\Administrator\\AppData\\Roaming\\MetaQuotes\\Tester\\D1AD27F6D15DE8FBBAEAC9E06FC597E0\\Agent-127.0.0.1-3004",
+                                                    "C:\\Users\\Administrator\\AppData\\Roaming\\MetaQuotes\\Tester\\D1AD27F6D15DE8FBBAEAC9E06FC597E0\\Agent-127.0.0.1-3005",
+                                                    "C:\\Users\\Administrator\\AppData\\Roaming\\MetaQuotes\\Tester\\D1AD27F6D15DE8FBBAEAC9E06FC597E0\\Agent-127.0.0.1-3006",
+                                                    "C:\\Users\\Administrator\\AppData\\Roaming\\MetaQuotes\\Tester\\D1AD27F6D15DE8FBBAEAC9E06FC597E0\\Agent-127.0.0.1-3007"
+                                                ]
+                      },
+    "terminal_data":  {
+                          "root":  "C:\\Users\\ADMINI~1\\AppData\\Local\\Temp\\2\\inf003-r-term-fd394a1136c64cf08a681410f74ee106",
+                          "root_exists":  true,
+                          "instances":  [
+                                            {
+                                                "id":  "AAAA1111BBBB2222CCCC3333DDDD4444",
+                                                "path":  "C:\\Users\\Administrator\\AppData\\Local\\Temp\\2\\inf003-r-term-fd394a1136c64cf08a681410f74ee106\\AAAA1111BBBB2222CCCC3333DDDD4444",
+                                                "origin":  "C:\\Users\\ADMINI~1\\AppData\\Local\\Temp\\2\\inf003-r-install-093077541d3a43218896b15176779040",
+                                                "mql5_exists":  false,
+                                                "tester_exists":  false,
+                                                "bases_exists":  false,
+                                                "servers":  [
+
+                                                            ]
+                                            },
+                                            {
+                                                "id":  "EEEE5555FFFF6666AAAA7777BBBB8888",
+                                                "path":  "C:\\Users\\Administrator\\AppData\\Local\\Temp\\2\\inf003-r-term-fd394a1136c64cf08a681410f74ee106\\EEEE5555FFFF6666AAAA7777BBBB8888",
+                                                "origin":  "C:\\Users\\ADMINI~1\\AppData\\Local\\Temp\\2\\inf003-r-install-093077541d3a43218896b15176779040",
+                                                "mql5_exists":  false,
+                                                "tester_exists":  false,
+                                                "bases_exists":  false,
+                                                "servers":  [
+
+                                                            ]
+                                            }
+                                        ]
+                      },
+    "disk":  {
+                 "name":  "C",
+                 "available":  true,
+                 "used_gb":  199.72,
+                 "free_gb":  27.87
+             },
+    "running_processes":  [
+                              {
+                                  "name":  "terminal64",
+                                  "id":  9232,
+                                  "path":  "C:\\Program Files\\MetaTrader 5\\terminal64.exe"
+                              }
+                          ],
+    "discovery_notes":  [
+                            "No executable path is invented.",
+                            "Read-only inspection; MT5 is not launched for trading.",
+                            "StrictPreflight enables mandatory readiness gates; inventory-only mode does not imply verified readiness.",
+                            "Discovered Agent-* directories and metatester process presence never imply operational_agent_ready.",
+                            "Synthetic version fixtures are test-only and marked synthetic_fixture=true."
+                        ]
+}

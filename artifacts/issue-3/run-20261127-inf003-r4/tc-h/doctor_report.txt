@@ -1,0 +1,23 @@
+﻿INF-003 EnvDoctor start 2026-11-28T02:24:04.7486193Z mode=inventory_only
+host=WIN-8F5G6TCFF1J user=Administrator
+os=Microsoft Windows NT 10.0.17763.0
+powershell=5.1.17763.9376
+cwd=C:\Project\ai_bot_trade_inf003
+repo_root=C:\Project\ai_bot_trade_inf003
+output_dir=C:\Project\ai_bot_trade_inf003\artifacts\issue-3\run-20261127-inf003-r4\tc-h
+gates RequireTools=True RequireAgentDirectories=False FailOnBuildMismatch=False ValidateExecutables=True FailOnEmptyVersion=False MinAgentDirectories=1
+override InstallRoot=C:\Users\ADMINI~1\AppData\Local\Temp\2\inf003-fakeexe-65f7dc6f61f04d6680fdc017b60369c6
+discovered_install_roots=C:\Program Files\MetaTrader 5;C:\MT5-Cursor-Test
+metaeditor path=C:\Users\Administrator\AppData\Local\Temp\2\inf003-fakeexe-65f7dc6f61f04d6680fdc017b60369c6\metaeditor64.exe ver= pe=False identity=False synth=False
+terminal path=C:\Users\Administrator\AppData\Local\Temp\2\inf003-fakeexe-65f7dc6f61f04d6680fdc017b60369c6\terminal64.exe ver= pe=False identity=False synth=False
+metatester path=C:\Users\Administrator\AppData\Local\Temp\2\inf003-fakeexe-65f7dc6f61f04d6680fdc017b60369c6\metatester64.exe ver= pe=False identity=False synth=False
+git=SKIPPED (test-only bypass; not verified readiness evidence)
+discovered_agent_directories count=20 root=C:\Users\Administrator\AppData\Roaming\MetaQuotes\Tester
+operational_metatester_processes count=0
+operational_readiness_claimed=False operational_agent_ready=False
+install_data_map root=C:\Users\ADMINI~1\AppData\Local\Temp\2\inf003-fakeexe-65f7dc6f61f04d6680fdc017b60369c6 mapped=False match_count=0 terminals=
+FAIL data_directory_mapping_missing: No terminal data directory origin.txt maps to selected install root: C:\Users\ADMINI~1\AppData\Local\Temp\2\inf003-fakeexe-65f7dc6f61f04d6680fdc017b60369c6
+build_consistency consistent=False mismatch=False empty=True versions=EMPTY
+FAIL Invalid executable structure (MZ/PE) for MetaEditor: C:\Users\Administrator\AppData\Local\Temp\2\inf003-fakeexe-65f7dc6f61f04d6680fdc017b60369c6\metaeditor64.exe
+FAIL Invalid executable structure (MZ/PE) for Terminal: C:\Users\Administrator\AppData\Local\Temp\2\inf003-fakeexe-65f7dc6f61f04d6680fdc017b60369c6\terminal64.exe
+FAIL Invalid executable structure (MZ/PE) for MetaTester: C:\Users\Administrator\AppData\Local\Temp\2\inf003-fakeexe-65f7dc6f61f04d6680fdc017b60369c6\metatester64.exe

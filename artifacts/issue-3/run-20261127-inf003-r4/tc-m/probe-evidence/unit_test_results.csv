@@ -1,0 +1,3 @@
+﻿"TestId","Expected","Actual","Status"
+"TC-INF-003-M","Dirty pre-test worktree => evidence binding rejected","porcelain=<<?? INF003-DIRTY-MARKER.txt>>","PASS"
+"TC-INF-003-BIND","Evidence bound only on clean tree with valid SHA","rejected_dirty_worktree","PASS"

@@ -1,0 +1,25 @@
+﻿{
+    "issue":  3,
+    "task_id":  "INF-003",
+    "run_id":  "probe-evidence",
+    "tested_commit":  "ca5cc62351146d6216dc7a518a4b6c8300823a69",
+    "binding_rejected":  true,
+    "reason":  "dirty_worktree",
+    "verified_evidence_manifest":  false,
+    "dirty_tree_probe_only":  true,
+    "porcelain":  "?? INF003-DIRTY-MARKER.txt",
+    "tests":  [
+                  {
+                      "id":  "TC-INF-003-M",
+                      "status":  "PASS",
+                      "expected":  "Dirty pre-test worktree =\u003e evidence binding rejected",
+                      "actual":  "porcelain=\u003c\u003c?? INF003-DIRTY-MARKER.txt\u003e\u003e"
+                  },
+                  {
+                      "id":  "TC-INF-003-BIND",
+                      "status":  "PASS",
+                      "expected":  "Evidence bound only on clean tree with valid SHA",
+                      "actual":  "rejected_dirty_worktree"
+                  }
+              ]
+}
