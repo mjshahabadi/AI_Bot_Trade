@@ -1,0 +1,6 @@
+﻿"TestId","Expected","Actual","Status"
+"TC-INF-003-A","Doctor captures real MetaEditor/MT5/Git absolute paths and versions","exit=0 meta=C:\Program Files\MetaTrader 5\metaeditor64.exe ver=5.0.0.6230 term=C:\Program Files\MetaTrader 5\terminal64.exe git=C:\Program Files\Git\cmd\git.exe","PASS"
+"TC-INF-003-B","Invalid MetaEditor path => nonzero exit and precise error","exit=1 precise_error=true path=C:\Program Files\MetaTrader 5\metaeditor64-DOES-NOT-EXIST.exe","PASS"
+"TC-INF-003-C","Path with spaces/non-ASCII correctly handled or explicitly BLOCKED","handled spaced/unicode path exit=0 path=C:\Users\Administrator\AppData\Local\Temp\2\INF-003 Env Doctor Тест\MetaTrader 5\metaeditor64.exe mode=copy","PASS"
+"REG-INF-003-1","No MQL5 trading sources present/changed for this infrastructure issue","mq5/mqh/ex5 count=0 under repo worktree","PASS"
+"TC-INF-003-BIND","Evidence bound to full tested commit SHA on clean evaluation tree","tested_sha=936f9c0851cc85650d8602a5441146fadc22a512 branch=test/issue-3-inf-003-env-doctor porcelain_empty=True","PASS"

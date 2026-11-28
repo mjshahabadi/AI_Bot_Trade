@@ -1,0 +1,20 @@
+﻿INF-003 EnvDoctor start 2026-11-28T02:24:18.8526430Z mode=inventory_only
+host=WIN-8F5G6TCFF1J user=Administrator
+os=Microsoft Windows NT 10.0.17763.0
+powershell=5.1.17763.9376
+cwd=C:\Project\ai_bot_trade_inf003
+repo_root=C:\Project\ai_bot_trade_inf003
+output_dir=C:\Project\ai_bot_trade_inf003\artifacts\issue-3\run-20261127-inf003-r4\tc-q
+gates RequireTools=True RequireAgentDirectories=False FailOnBuildMismatch=False ValidateExecutables=False FailOnEmptyVersion=False MinAgentDirectories=1
+override InstallRoot=C:\Users\ADMINI~1\AppData\Local\Temp\2\inf003-q-install-3c0a62ab4e1344cbaad8e7e88c23216d
+discovered_install_roots=C:\Program Files\MetaTrader 5;C:\MT5-Cursor-Test
+metaeditor path=C:\Users\Administrator\AppData\Local\Temp\2\inf003-q-install-3c0a62ab4e1344cbaad8e7e88c23216d\metaeditor64.exe ver=5.0.0.6230 pe=True identity=True synth=True
+terminal path=C:\Users\Administrator\AppData\Local\Temp\2\inf003-q-install-3c0a62ab4e1344cbaad8e7e88c23216d\terminal64.exe ver=5.0.0.6230 pe=True identity=True synth=True
+metatester path=C:\Users\Administrator\AppData\Local\Temp\2\inf003-q-install-3c0a62ab4e1344cbaad8e7e88c23216d\metatester64.exe ver=5.0.0.6230 pe=True identity=True synth=True
+git=SKIPPED (test-only bypass; not verified readiness evidence)
+discovered_agent_directories count=20 root=C:\Users\Administrator\AppData\Roaming\MetaQuotes\Tester
+operational_metatester_processes count=0
+operational_readiness_claimed=False operational_agent_ready=False
+install_data_map root=C:\Users\ADMINI~1\AppData\Local\Temp\2\inf003-q-install-3c0a62ab4e1344cbaad8e7e88c23216d mapped=False match_count=0 terminals=
+FAIL data_directory_mapping_missing: No terminal data directory origin.txt maps to selected install root: C:\Users\ADMINI~1\AppData\Local\Temp\2\inf003-q-install-3c0a62ab4e1344cbaad8e7e88c23216d
+build_consistency consistent=True mismatch=False empty=False versions=5.0.0.6230

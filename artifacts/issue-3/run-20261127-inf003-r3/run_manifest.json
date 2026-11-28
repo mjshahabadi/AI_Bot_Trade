@@ -1,0 +1,177 @@
+﻿{
+    "issue":  3,
+    "task_id":  "INF-003",
+    "requirement_ids":  [
+                            "REQ-INF-003"
+                        ],
+    "rule_ids":  [
+                     "RULE-ENV-001"
+                 ],
+    "run_id":  "run-20261127-inf003-r3",
+    "branch":  "test/issue-3-inf-003-env-doctor",
+    "baseline_commit":  "a428d1cb5a3fc20b0f38fb1bb29653570e3fda2c",
+    "reviewed_prior_head":  "003f17eda16972f94e40bebacb0d82014d2654dd",
+    "tested_commit":  "6564d06b964d8af1aa606d3d3ba25618e2acaaa7",
+    "origin_main_at_claim":  "aebe8cd62aaf15f84d4001f15a8b828c92202b77",
+    "execution_timestamp_utc":  "2026-11-27T16:46:44.3169716Z",
+    "host":  "WIN-8F5G6TCFF1J",
+    "os":  "Microsoft Windows NT 10.0.17763.0",
+    "powershell":  "5.1.17763.9376",
+    "compiler_build":  "N/A — no MQL5 compile in INF-003",
+    "ex5_hash":  "N/A — no EX5 produced",
+    "authorization":  "Product Owner scoped approval 2026-11-27 for REQ-INF-003 only; INF-001 remains REWORK",
+    "pr_url":  "https://github.com/mjshahabadi/AI_Bot_Trade/pull/15",
+    "cto_decision_prior":  "REWORK REQUIRED",
+    "acceptance_status":  "PENDING independent GPT CTO review — not approved",
+    "known_limitations":  [
+                              "SkipGit is test-only and never used as strict readiness evidence.",
+                              "Synthetic version fixtures are marked synthetic_fixture=true and are not real toolchain evidence.",
+                              "Strict preflight verified gates do not claim Strategy Tester operational agent readiness.",
+                              "Multiple MT5 installs require explicit -InstallRoot under StrictPreflight."
+                          ],
+    "artifact_links":  {
+                           "manifest":  "artifacts/issue-3/run-20261127-inf003-r3/run_manifest.json",
+                           "csv":  "artifacts/issue-3/run-20261127-inf003-r3/unit_test_results.csv",
+                           "summary":  "artifacts/issue-3/run-20261127-inf003-r3/test_summary.md",
+                           "stdout":  "artifacts/issue-3/run-20261127-inf003-r3/test_stdout.log",
+                           "sha256":  "artifacts/issue-3/run-20261127-inf003-r3/evidence_sha256.txt"
+                       },
+    "acceptance_criteria":  [
+                                {
+                                    "id":  "AC-001",
+                                    "tests":  [
+                                                  "TC-INF-003-A",
+                                                  "TC-INF-003-C"
+                                              ]
+                                },
+                                {
+                                    "id":  "AC-002",
+                                    "tests":  [
+                                                  "TC-INF-003-B",
+                                                  "TC-INF-003-D",
+                                                  "TC-INF-003-E",
+                                                  "TC-INF-003-F",
+                                                  "TC-INF-003-G",
+                                                  "TC-INF-003-H",
+                                                  "TC-INF-003-I",
+                                                  "TC-INF-003-J",
+                                                  "TC-INF-003-K",
+                                                  "TC-INF-003-L",
+                                                  "TC-INF-003-N"
+                                              ]
+                                },
+                                {
+                                    "id":  "AC-003",
+                                    "tests":  [
+                                                  "TC-INF-003-BIND",
+                                                  "TC-INF-003-M"
+                                              ]
+                                }
+                            ],
+    "tests":  [
+                  {
+                      "id":  "TC-INF-003-A",
+                      "status":  "PASS",
+                      "expected":  "Strict preflight on real Windows install captures validated tools/Git; no operational agent claim",
+                      "actual":  "exit=0 meta=C:\\Program Files\\MetaTrader 5\\metaeditor64.exe ver=5.0.0.6230 selected=C:\\Program Files\\MetaTrader 5 data=C:\\Users\\Administrator\\AppData\\Roaming\\MetaQuotes\\Terminal\\D0E8209F77C8CF37AD8BF550E51FF075 discovered_agents=20 operational_ready=False"
+                  },
+                  {
+                      "id":  "TC-INF-003-B",
+                      "status":  "PASS",
+                      "expected":  "Invalid MetaEditor path =\u003e nonzero + precise error",
+                      "actual":  "exit=1"
+                  },
+                  {
+                      "id":  "TC-INF-003-C",
+                      "status":  "PASS",
+                      "expected":  "Path with spaces/non-ASCII handled (synthetic fixture explicitly marked)",
+                      "actual":  "exit=0 path=C:\\Users\\Administrator\\AppData\\Local\\Temp\\2\\INF-003 Env Doctor Тест\\66ff4f7a4e184e3b8df4b167b16fa195\\metaeditor64.exe"
+                  },
+                  {
+                      "id":  "TC-INF-003-D",
+                      "status":  "PASS",
+                      "expected":  "Missing Agent directories =\u003e BLOCKED",
+                      "actual":  "exit=1 discovered=0"
+                  },
+                  {
+                      "id":  "TC-INF-003-E",
+                      "status":  "PASS",
+                      "expected":  "Inaccessible path =\u003e nonzero actionable failure",
+                      "actual":  "exit=1"
+                  },
+                  {
+                      "id":  "TC-INF-003-F",
+                      "status":  "PASS",
+                      "expected":  "Empty version metadata =\u003e FAIL/BLOCKED",
+                      "actual":  "exit=1 status=FAIL"
+                  },
+                  {
+                      "id":  "TC-INF-003-G",
+                      "status":  "PASS",
+                      "expected":  "Strict preflight with missing Agent dirs =\u003e nonzero BLOCKED",
+                      "actual":  "exit=1 readiness_passed=False"
+                  },
+                  {
+                      "id":  "TC-INF-003-H",
+                      "status":  "PASS",
+                      "expected":  "Readable fake EXE =\u003e nonzero FAIL/BLOCKED",
+                      "actual":  "exit=1 status=FAIL"
+                  },
+                  {
+                      "id":  "TC-INF-003-I",
+                      "status":  "PASS",
+                      "expected":  "Invalid Git repository =\u003e nonzero FAIL/BLOCKED",
+                      "actual":  "exit=1 err=not_a_git_repository"
+                  },
+                  {
+                      "id":  "TC-INF-003-J",
+                      "status":  "PASS",
+                      "expected":  "Mixed installation roots =\u003e explicit rejection",
+                      "actual":  "exit=1 ambiguous=True"
+                  },
+                  {
+                      "id":  "TC-INF-003-K",
+                      "status":  "PASS",
+                      "expected":  "Different nonempty version fixtures =\u003e nonzero mismatch diagnostic (synthetic marked)",
+                      "actual":  "exit=1 versions=5.0.0.1000,5.0.0.2000"
+                  },
+                  {
+                      "id":  "TC-INF-003-L",
+                      "status":  "PASS",
+                      "expected":  "Empty version metadata =\u003e nonzero FAIL/BLOCKED",
+                      "actual":  "exit=1"
+                  },
+                  {
+                      "id":  "TC-INF-003-M",
+                      "status":  "PASS",
+                      "expected":  "Dirty pre-test worktree =\u003e evidence binding rejected",
+                      "actual":  "pre_test_clean=True; harness rejects dirty trees before artifact generation; tested_sha=6564d06b964d8af1aa606d3d3ba25618e2acaaa7"
+                  },
+                  {
+                      "id":  "TC-INF-003-N",
+                      "status":  "PASS",
+                      "expected":  "Invalid MinAgentDirectories =\u003e explicit validation failure",
+                      "actual":  "exit=1"
+                  },
+                  {
+                      "id":  "REG-INF-003-1",
+                      "status":  "PASS",
+                      "expected":  "No MQL5 trading sources",
+                      "actual":  "count=0"
+                  },
+                  {
+                      "id":  "REG-INF-003-2",
+                      "status":  "PASS",
+                      "expected":  "Governance/issue/PR templates unchanged; AGENTS==GPT_MASTER",
+                      "actual":  "sha256=C7ABA1687F898A7523697DEFCC93E9F475F4CE8C8621861749BE870AB7DA108E"
+                  },
+                  {
+                      "id":  "TC-INF-003-BIND",
+                      "status":  "PASS",
+                      "expected":  "Evidence bound to valid tested SHA on clean pre-test worktree",
+                      "actual":  "tested_sha=6564d06b964d8af1aa606d3d3ba25618e2acaaa7 porcelain_empty=True"
+                  }
+              ],
+    "failure_count":  0,
+    "evidence_binding_note":  "Tests executed only after clean pre-test worktree verification. Evidence publication commit is separate from tested_commit."
+}

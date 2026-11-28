@@ -1,0 +1,27 @@
+﻿INF-003 EnvDoctor start 2026-11-28T02:24:15.5166547Z mode=inventory_only
+host=WIN-8F5G6TCFF1J user=Administrator
+os=Microsoft Windows NT 10.0.17763.0
+powershell=5.1.17763.9376
+cwd=C:\Project\ai_bot_trade_inf003
+repo_root=C:\Project\ai_bot_trade_inf003
+output_dir=C:\Project\ai_bot_trade_inf003\artifacts\issue-3\run-20261127-inf003-r4\tc-o
+gates RequireTools=True RequireAgentDirectories=False FailOnBuildMismatch=False ValidateExecutables=True FailOnEmptyVersion=False MinAgentDirectories=1
+override InstallRoot=C:\Users\ADMINI~1\AppData\Local\Temp\2\inf003-mzmalformed-a456615d82314d49a71b1c7eaa40fb48
+discovered_install_roots=C:\Program Files\MetaTrader 5;C:\MT5-Cursor-Test
+metaeditor path=C:\Users\Administrator\AppData\Local\Temp\2\inf003-mzmalformed-a456615d82314d49a71b1c7eaa40fb48\metaeditor64.exe ver=5.0.0.6230 pe=False identity=True synth=True
+terminal path=C:\Users\Administrator\AppData\Local\Temp\2\inf003-mzmalformed-a456615d82314d49a71b1c7eaa40fb48\terminal64.exe ver=5.0.0.6230 pe=False identity=True synth=True
+metatester path=C:\Users\Administrator\AppData\Local\Temp\2\inf003-mzmalformed-a456615d82314d49a71b1c7eaa40fb48\metatester64.exe ver=5.0.0.6230 pe=False identity=True synth=True
+git=SKIPPED (test-only bypass; not verified readiness evidence)
+discovered_agent_directories count=20 root=C:\Users\Administrator\AppData\Roaming\MetaQuotes\Tester
+operational_metatester_processes count=0
+operational_readiness_claimed=False operational_agent_ready=False
+install_data_map root=C:\Users\ADMINI~1\AppData\Local\Temp\2\inf003-mzmalformed-a456615d82314d49a71b1c7eaa40fb48 mapped=True match_count=1 terminals=O0d481a564bed42cfaeac80392fbf2ad
+data_directory_mapping_unique terminal_id=O0d481a564bed42cfaeac80392fbf2ad data=C:\Users\Administrator\AppData\Local\Temp\2\inf003-o-term-ff6bed2811dd4de5beea435c220798ae\O0d481a564bed42cfaeac80392fbf2ad
+build_consistency consistent=True mismatch=False empty=False versions=5.0.0.6230
+FAIL Invalid executable structure (MZ/PE) for MetaEditor: C:\Users\Administrator\AppData\Local\Temp\2\inf003-mzmalformed-a456615d82314d49a71b1c7eaa40fb48\metaeditor64.exe
+FAIL Invalid executable structure (MZ/PE) for Terminal: C:\Users\Administrator\AppData\Local\Temp\2\inf003-mzmalformed-a456615d82314d49a71b1c7eaa40fb48\terminal64.exe
+FAIL Invalid executable structure (MZ/PE) for MetaTester: C:\Users\Administrator\AppData\Local\Temp\2\inf003-mzmalformed-a456615d82314d49a71b1c7eaa40fb48\metatester64.exe
+wrote C:\Project\ai_bot_trade_inf003\artifacts\issue-3\run-20261127-inf003-r4\tc-o\doctor_report.json
+wrote C:\Project\ai_bot_trade_inf003\artifacts\issue-3\run-20261127-inf003-r4\tc-o\doctor_report.txt
+overall_status=FAIL readiness_mode=inventory_only verified_preflight_passed=False
+

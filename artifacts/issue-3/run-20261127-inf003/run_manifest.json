@@ -1,0 +1,74 @@
+﻿{
+    "issue":  3,
+    "task_id":  "INF-003",
+    "requirement_ids":  [
+                            "REQ-INF-003"
+                        ],
+    "rule_ids":  [
+                     "RULE-ENV-001"
+                 ],
+    "run_id":  "run-20261127-inf003",
+    "branch":  "test/issue-3-inf-003-env-doctor",
+    "baseline_commit":  "a428d1cb5a3fc20b0f38fb1bb29653570e3fda2c",
+    "tested_commit":  "936f9c0851cc85650d8602a5441146fadc22a512",
+    "origin_main_at_claim":  "aebe8cd62aaf15f84d4001f15a8b828c92202b77",
+    "execution_timestamp_utc":  "2026-11-27T15:17:56.2211305Z",
+    "host":  "WIN-8F5G6TCFF1J",
+    "os":  "Microsoft Windows NT 10.0.17763.0",
+    "powershell":  "5.1.17763.9376",
+    "compiler_build":  "N/A — no MQL5 compile in INF-003",
+    "ex5_hash":  "N/A — no EX5 produced",
+    "authorization":  "Product Owner scoped approval 2026-11-27 for REQ-INF-003 only; INF-001 remains REWORK",
+    "tests":  [
+                  {
+                      "id":  "TC-INF-003-A",
+                      "status":  "PASS",
+                      "expected":  "Doctor captures real MetaEditor/MT5/Git absolute paths and versions",
+                      "actual":  "exit=0 meta=C:\\Program Files\\MetaTrader 5\\metaeditor64.exe ver=5.0.0.6230 term=C:\\Program Files\\MetaTrader 5\\terminal64.exe git=C:\\Program Files\\Git\\cmd\\git.exe"
+                  },
+                  {
+                      "id":  "TC-INF-003-B",
+                      "status":  "PASS",
+                      "expected":  "Invalid MetaEditor path =\u003e nonzero exit and precise error",
+                      "actual":  "exit=1 precise_error=true path=C:\\Program Files\\MetaTrader 5\\metaeditor64-DOES-NOT-EXIST.exe"
+                  },
+                  {
+                      "id":  "TC-INF-003-C",
+                      "status":  "PASS",
+                      "expected":  "Path with spaces/non-ASCII correctly handled or explicitly BLOCKED",
+                      "actual":  "handled spaced/unicode path exit=0 path=C:\\Users\\Administrator\\AppData\\Local\\Temp\\2\\INF-003 Env Doctor Тест\\MetaTrader 5\\metaeditor64.exe mode=copy"
+                  },
+                  {
+                      "id":  "REG-INF-003-1",
+                      "status":  "PASS",
+                      "expected":  "No MQL5 trading sources present/changed for this infrastructure issue",
+                      "actual":  "mq5/mqh/ex5 count=0 under repo worktree"
+                  },
+                  {
+                      "id":  "TC-INF-003-BIND",
+                      "status":  "PASS",
+                      "expected":  "Evidence bound to full tested commit SHA on clean evaluation tree",
+                      "actual":  "tested_sha=936f9c0851cc85650d8602a5441146fadc22a512 branch=test/issue-3-inf-003-env-doctor porcelain_empty=True"
+                  }
+              ],
+    "failure_count":  0,
+    "evidence_dir":  "C:\\Project\\ai_bot_trade_inf003\\artifacts\\issue-3\\run-20261127-inf003",
+    "evidence_binding_note":  "Tests executed on clean tree at tested_commit. This evidence publication commit is separate and is not re-executed as the tested revision.",
+    "acceptance_criteria":  [
+                                {
+                                    "id":  "AC-001",
+                                    "status":  "PASS",
+                                    "evidence":  "tc-a/doctor_report.json"
+                                },
+                                {
+                                    "id":  "AC-002",
+                                    "status":  "PASS",
+                                    "evidence":  "tc-b/doctor_report.json"
+                                },
+                                {
+                                    "id":  "AC-003",
+                                    "status":  "PASS",
+                                    "evidence":  "run_manifest.json;test_stdout.log"
+                                }
+                            ]
+}

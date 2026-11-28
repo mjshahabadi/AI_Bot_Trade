@@ -1,0 +1,224 @@
+﻿{
+    "schema":  "ai-bot-trade.env-doctor.v1.1",
+    "task_id":  "INF-003",
+    "requirement_id":  "REQ-INF-003",
+    "rule_id":  "RULE-ENV-001",
+    "timestamp_utc":  "2026-11-27T15:32:35.0511015Z",
+    "host":  "WIN-8F5G6TCFF1J",
+    "user":  "Administrator",
+    "os":  "Microsoft Windows NT 10.0.17763.0",
+    "powershell":  "5.1.17763.9376",
+    "working_directory":  "C:\\Project\\ai_bot_trade_inf003",
+    "repo_root":  "C:\\Project\\ai_bot_trade_inf003",
+    "overall_status":  "FAIL",
+    "issues":  [
+                   "MetaEditorPath override not found: C:\\Program Files\\MetaTrader 5\\metaeditor64-DOES-NOT-EXIST.exe"
+               ],
+    "install_roots_found":  [
+
+                            ],
+    "install_data_mapping":  {
+
+                             },
+    "build_consistency":  {
+                              "versions_recorded":  [
+
+                                                    ],
+                              "unique_versions":  [
+
+                                                  ],
+                              "consistent":  false,
+                              "mismatch":  false
+                          },
+    "metaeditor":  null,
+    "terminal":  null,
+    "metatester":  null,
+    "git":  {
+                "available":  true,
+                "path":  "C:\\Program Files\\Git\\cmd\\git.exe",
+                "version":  "git version 2.51.2.windows.1",
+                "repo_root":  "C:\\Project\\ai_bot_trade_inf003",
+                "head":  "7835ef901712f9c41a5c5c2d361cc66222e4accb",
+                "status":  "?? artifacts/issue-3/run-20261127-inf003-r2/",
+                "error":  null
+            },
+    "tester_agents":  {
+                          "root":  "C:\\Users\\Administrator\\AppData\\Roaming\\MetaQuotes\\Tester",
+                          "root_exists":  true,
+                          "discovered_agent_directories":  [
+                                                               "C:\\Users\\Administrator\\AppData\\Roaming\\MetaQuotes\\Tester\\D0E8209F77C8CF37AD8BF550E51FF075\\Agent-127.0.0.1-3000",
+                                                               "C:\\Users\\Administrator\\AppData\\Roaming\\MetaQuotes\\Tester\\D0E8209F77C8CF37AD8BF550E51FF075\\Agent-127.0.0.1-3001",
+                                                               "C:\\Users\\Administrator\\AppData\\Roaming\\MetaQuotes\\Tester\\D0E8209F77C8CF37AD8BF550E51FF075\\Agent-127.0.0.1-3002",
+                                                               "C:\\Users\\Administrator\\AppData\\Roaming\\MetaQuotes\\Tester\\D0E8209F77C8CF37AD8BF550E51FF075\\Agent-127.0.0.1-3003",
+                                                               "C:\\Users\\Administrator\\AppData\\Roaming\\MetaQuotes\\Tester\\D0E8209F77C8CF37AD8BF550E51FF075\\Agent-127.0.0.1-3004",
+                                                               "C:\\Users\\Administrator\\AppData\\Roaming\\MetaQuotes\\Tester\\D0E8209F77C8CF37AD8BF550E51FF075\\Agent-127.0.0.1-3005",
+                                                               "C:\\Users\\Administrator\\AppData\\Roaming\\MetaQuotes\\Tester\\D0E8209F77C8CF37AD8BF550E51FF075\\Agent-127.0.0.1-3006",
+                                                               "C:\\Users\\Administrator\\AppData\\Roaming\\MetaQuotes\\Tester\\D0E8209F77C8CF37AD8BF550E51FF075\\Agent-127.0.0.1-3007",
+                                                               "C:\\Users\\Administrator\\AppData\\Roaming\\MetaQuotes\\Tester\\D0E8209F77C8CF37AD8BF550E51FF075\\Agent-127.0.0.1-3008",
+                                                               "C:\\Users\\Administrator\\AppData\\Roaming\\MetaQuotes\\Tester\\D0E8209F77C8CF37AD8BF550E51FF075\\Agent-127.0.0.1-3009",
+                                                               "C:\\Users\\Administrator\\AppData\\Roaming\\MetaQuotes\\Tester\\D0E8209F77C8CF37AD8BF550E51FF075\\Agent-127.0.0.1-3010",
+                                                               "C:\\Users\\Administrator\\AppData\\Roaming\\MetaQuotes\\Tester\\D0E8209F77C8CF37AD8BF550E51FF075\\Agent-127.0.0.1-3011",
+                                                               "C:\\Users\\Administrator\\AppData\\Roaming\\MetaQuotes\\Tester\\D1AD27F6D15DE8FBBAEAC9E06FC597E0\\Agent-127.0.0.1-3000",
+                                                               "C:\\Users\\Administrator\\AppData\\Roaming\\MetaQuotes\\Tester\\D1AD27F6D15DE8FBBAEAC9E06FC597E0\\Agent-127.0.0.1-3001",
+                                                               "C:\\Users\\Administrator\\AppData\\Roaming\\MetaQuotes\\Tester\\D1AD27F6D15DE8FBBAEAC9E06FC597E0\\Agent-127.0.0.1-3002",
+                                                               "C:\\Users\\Administrator\\AppData\\Roaming\\MetaQuotes\\Tester\\D1AD27F6D15DE8FBBAEAC9E06FC597E0\\Agent-127.0.0.1-3003",
+                                                               "C:\\Users\\Administrator\\AppData\\Roaming\\MetaQuotes\\Tester\\D1AD27F6D15DE8FBBAEAC9E06FC597E0\\Agent-127.0.0.1-3004",
+                                                               "C:\\Users\\Administrator\\AppData\\Roaming\\MetaQuotes\\Tester\\D1AD27F6D15DE8FBBAEAC9E06FC597E0\\Agent-127.0.0.1-3005",
+                                                               "C:\\Users\\Administrator\\AppData\\Roaming\\MetaQuotes\\Tester\\D1AD27F6D15DE8FBBAEAC9E06FC597E0\\Agent-127.0.0.1-3006",
+                                                               "C:\\Users\\Administrator\\AppData\\Roaming\\MetaQuotes\\Tester\\D1AD27F6D15DE8FBBAEAC9E06FC597E0\\Agent-127.0.0.1-3007"
+                                                           ],
+                          "discovered_agent_directory_count":  20,
+                          "operational_metatester_processes":  [
+
+                                                               ],
+                          "operational_metatester_process_count":  0,
+                          "operational_readiness_claimed":  false,
+                          "classification_note":  "Discovered Agent-* directories are filesystem inventory only. Operational readiness requires running metatester process evidence and is not claimed from directory presence alone.",
+                          "agent_directory_count":  20,
+                          "agent_directories":  [
+                                                    "C:\\Users\\Administrator\\AppData\\Roaming\\MetaQuotes\\Tester\\D0E8209F77C8CF37AD8BF550E51FF075\\Agent-127.0.0.1-3000",
+                                                    "C:\\Users\\Administrator\\AppData\\Roaming\\MetaQuotes\\Tester\\D0E8209F77C8CF37AD8BF550E51FF075\\Agent-127.0.0.1-3001",
+                                                    "C:\\Users\\Administrator\\AppData\\Roaming\\MetaQuotes\\Tester\\D0E8209F77C8CF37AD8BF550E51FF075\\Agent-127.0.0.1-3002",
+                                                    "C:\\Users\\Administrator\\AppData\\Roaming\\MetaQuotes\\Tester\\D0E8209F77C8CF37AD8BF550E51FF075\\Agent-127.0.0.1-3003",
+                                                    "C:\\Users\\Administrator\\AppData\\Roaming\\MetaQuotes\\Tester\\D0E8209F77C8CF37AD8BF550E51FF075\\Agent-127.0.0.1-3004",
+                                                    "C:\\Users\\Administrator\\AppData\\Roaming\\MetaQuotes\\Tester\\D0E8209F77C8CF37AD8BF550E51FF075\\Agent-127.0.0.1-3005",
+                                                    "C:\\Users\\Administrator\\AppData\\Roaming\\MetaQuotes\\Tester\\D0E8209F77C8CF37AD8BF550E51FF075\\Agent-127.0.0.1-3006",
+                                                    "C:\\Users\\Administrator\\AppData\\Roaming\\MetaQuotes\\Tester\\D0E8209F77C8CF37AD8BF550E51FF075\\Agent-127.0.0.1-3007",
+                                                    "C:\\Users\\Administrator\\AppData\\Roaming\\MetaQuotes\\Tester\\D0E8209F77C8CF37AD8BF550E51FF075\\Agent-127.0.0.1-3008",
+                                                    "C:\\Users\\Administrator\\AppData\\Roaming\\MetaQuotes\\Tester\\D0E8209F77C8CF37AD8BF550E51FF075\\Agent-127.0.0.1-3009",
+                                                    "C:\\Users\\Administrator\\AppData\\Roaming\\MetaQuotes\\Tester\\D0E8209F77C8CF37AD8BF550E51FF075\\Agent-127.0.0.1-3010",
+                                                    "C:\\Users\\Administrator\\AppData\\Roaming\\MetaQuotes\\Tester\\D0E8209F77C8CF37AD8BF550E51FF075\\Agent-127.0.0.1-3011",
+                                                    "C:\\Users\\Administrator\\AppData\\Roaming\\MetaQuotes\\Tester\\D1AD27F6D15DE8FBBAEAC9E06FC597E0\\Agent-127.0.0.1-3000",
+                                                    "C:\\Users\\Administrator\\AppData\\Roaming\\MetaQuotes\\Tester\\D1AD27F6D15DE8FBBAEAC9E06FC597E0\\Agent-127.0.0.1-3001",
+                                                    "C:\\Users\\Administrator\\AppData\\Roaming\\MetaQuotes\\Tester\\D1AD27F6D15DE8FBBAEAC9E06FC597E0\\Agent-127.0.0.1-3002",
+                                                    "C:\\Users\\Administrator\\AppData\\Roaming\\MetaQuotes\\Tester\\D1AD27F6D15DE8FBBAEAC9E06FC597E0\\Agent-127.0.0.1-3003",
+                                                    "C:\\Users\\Administrator\\AppData\\Roaming\\MetaQuotes\\Tester\\D1AD27F6D15DE8FBBAEAC9E06FC597E0\\Agent-127.0.0.1-3004",
+                                                    "C:\\Users\\Administrator\\AppData\\Roaming\\MetaQuotes\\Tester\\D1AD27F6D15DE8FBBAEAC9E06FC597E0\\Agent-127.0.0.1-3005",
+                                                    "C:\\Users\\Administrator\\AppData\\Roaming\\MetaQuotes\\Tester\\D1AD27F6D15DE8FBBAEAC9E06FC597E0\\Agent-127.0.0.1-3006",
+                                                    "C:\\Users\\Administrator\\AppData\\Roaming\\MetaQuotes\\Tester\\D1AD27F6D15DE8FBBAEAC9E06FC597E0\\Agent-127.0.0.1-3007"
+                                                ]
+                      },
+    "terminal_data":  {
+                          "root":  "C:\\Users\\Administrator\\AppData\\Roaming\\MetaQuotes\\Terminal",
+                          "root_exists":  true,
+                          "instances":  [
+                                            {
+                                                "id":  "Common",
+                                                "path":  "C:\\Users\\Administrator\\AppData\\Roaming\\MetaQuotes\\Terminal\\Common",
+                                                "origin":  null,
+                                                "mql5_exists":  false,
+                                                "tester_exists":  false,
+                                                "bases_exists":  false,
+                                                "servers":  [
+
+                                                            ]
+                                            },
+                                            {
+                                                "id":  "Community",
+                                                "path":  "C:\\Users\\Administrator\\AppData\\Roaming\\MetaQuotes\\Terminal\\Community",
+                                                "origin":  null,
+                                                "mql5_exists":  false,
+                                                "tester_exists":  false,
+                                                "bases_exists":  false,
+                                                "servers":  [
+
+                                                            ]
+                                            },
+                                            {
+                                                "id":  "D0E8209F77C8CF37AD8BF550E51FF075",
+                                                "path":  "C:\\Users\\Administrator\\AppData\\Roaming\\MetaQuotes\\Terminal\\D0E8209F77C8CF37AD8BF550E51FF075",
+                                                "origin":  "C:\\Program Files\\MetaTrader 5",
+                                                "mql5_exists":  true,
+                                                "tester_exists":  true,
+                                                "bases_exists":  true,
+                                                "servers":  [
+                                                                {
+                                                                    "name":  "Chats",
+                                                                    "history_exists":  false,
+                                                                    "history_symbol_dirs":  0
+                                                                },
+                                                                {
+                                                                    "name":  "Custom",
+                                                                    "history_exists":  true,
+                                                                    "history_symbol_dirs":  0
+                                                                },
+                                                                {
+                                                                    "name":  "Default",
+                                                                    "history_exists":  true,
+                                                                    "history_symbol_dirs":  4
+                                                                },
+                                                                {
+                                                                    "name":  "LiteFinance-MT5-Demo",
+                                                                    "history_exists":  true,
+                                                                    "history_symbol_dirs":  15
+                                                                },
+                                                                {
+                                                                    "name":  "LiteFinance-MT5-Live",
+                                                                    "history_exists":  true,
+                                                                    "history_symbol_dirs":  11
+                                                                },
+                                                                {
+                                                                    "name":  "signals",
+                                                                    "history_exists":  false,
+                                                                    "history_symbol_dirs":  0
+                                                                }
+                                                            ]
+                                            },
+                                            {
+                                                "id":  "D1AD27F6D15DE8FBBAEAC9E06FC597E0",
+                                                "path":  "C:\\Users\\Administrator\\AppData\\Roaming\\MetaQuotes\\Terminal\\D1AD27F6D15DE8FBBAEAC9E06FC597E0",
+                                                "origin":  "C:\\MT5-Cursor-Test",
+                                                "mql5_exists":  true,
+                                                "tester_exists":  true,
+                                                "bases_exists":  true,
+                                                "servers":  [
+                                                                {
+                                                                    "name":  "Custom",
+                                                                    "history_exists":  true,
+                                                                    "history_symbol_dirs":  0
+                                                                },
+                                                                {
+                                                                    "name":  "Default",
+                                                                    "history_exists":  true,
+                                                                    "history_symbol_dirs":  4
+                                                                },
+                                                                {
+                                                                    "name":  "LiteFinance-MT5-Demo",
+                                                                    "history_exists":  true,
+                                                                    "history_symbol_dirs":  2
+                                                                },
+                                                                {
+                                                                    "name":  "signals",
+                                                                    "history_exists":  false,
+                                                                    "history_symbol_dirs":  0
+                                                                }
+                                                            ]
+                                            }
+                                        ]
+                      },
+    "disk":  {
+                 "name":  "C",
+                 "available":  true,
+                 "used_gb":  198.56,
+                 "free_gb":  29.03
+             },
+    "running_processes":  [
+                              {
+                                  "name":  "terminal64",
+                                  "id":  9232,
+                                  "path":  "C:\\Program Files\\MetaTrader 5\\terminal64.exe"
+                              },
+                              {
+                                  "name":  "terminal64",
+                                  "id":  11024,
+                                  "path":  "C:\\MT5-Cursor-Test\\terminal64.exe"
+                              }
+                          ],
+    "discovery_notes":  [
+                            "Paths are reported only when discovered via override, registry InstallLocation, known existing directories, or running process image paths.",
+                            "No executable path is invented.",
+                            "Read-only inspection; no trading actions.",
+                            "Discovered Agent-* directories are not operational Tester Agents.",
+                            "Operational metatester readiness is not claimed unless running process evidence exists; this report sets operational_readiness_claimed=false."
+                        ]
+}

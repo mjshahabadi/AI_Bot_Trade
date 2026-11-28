@@ -1,0 +1,121 @@
+﻿{
+    "issue":  3,
+    "task_id":  "INF-003",
+    "requirement_ids":  [
+                            "REQ-INF-003"
+                        ],
+    "rule_ids":  [
+                     "RULE-ENV-001"
+                 ],
+    "run_id":  "run-20261127-inf003-r2",
+    "branch":  "test/issue-3-inf-003-env-doctor",
+    "baseline_commit":  "a428d1cb5a3fc20b0f38fb1bb29653570e3fda2c",
+    "tested_commit":  "7835ef901712f9c41a5c5c2d361cc66222e4accb",
+    "origin_main_at_claim":  "aebe8cd62aaf15f84d4001f15a8b828c92202b77",
+    "execution_timestamp_utc":  "2026-11-27T15:32:30.8551479Z",
+    "host":  "WIN-8F5G6TCFF1J",
+    "os":  "Microsoft Windows NT 10.0.17763.0",
+    "powershell":  "5.1.17763.9376",
+    "compiler_build":  "N/A — no MQL5 compile in INF-003",
+    "ex5_hash":  "N/A — no EX5 produced",
+    "authorization":  "Product Owner scoped approval 2026-11-27 for REQ-INF-003 only; INF-001 remains REWORK",
+    "pr_url":  "https://github.com/mjshahabadi/AI_Bot_Trade/pull/15",
+    "artifact_links":  {
+                           "manifest":  "artifacts/issue-3/run-20261127-inf003-r2/run_manifest.json",
+                           "csv":  "artifacts/issue-3/run-20261127-inf003-r2/unit_test_results.csv",
+                           "summary":  "artifacts/issue-3/run-20261127-inf003-r2/test_summary.md",
+                           "stdout":  "artifacts/issue-3/run-20261127-inf003-r2/test_stdout.log",
+                           "sha256":  "artifacts/issue-3/run-20261127-inf003-r2/evidence_sha256.txt",
+                           "tc_a":  "artifacts/issue-3/run-20261127-inf003-r2/tc-a/",
+                           "tc_b":  "artifacts/issue-3/run-20261127-inf003-r2/tc-b/",
+                           "tc_c":  "artifacts/issue-3/run-20261127-inf003-r2/tc-c/",
+                           "tc_d":  "artifacts/issue-3/run-20261127-inf003-r2/tc-d/",
+                           "tc_e":  "artifacts/issue-3/run-20261127-inf003-r2/tc-e/",
+                           "tc_f":  "artifacts/issue-3/run-20261127-inf003-r2/tc-f/"
+                       },
+    "acceptance_criteria":  [
+                                {
+                                    "id":  "AC-001",
+                                    "status":  "see tests",
+                                    "tests":  [
+                                                  "TC-INF-003-A"
+                                              ]
+                                },
+                                {
+                                    "id":  "AC-002",
+                                    "status":  "see tests",
+                                    "tests":  [
+                                                  "TC-INF-003-B",
+                                                  "TC-INF-003-D",
+                                                  "TC-INF-003-E",
+                                                  "TC-INF-003-F"
+                                              ]
+                                },
+                                {
+                                    "id":  "AC-003",
+                                    "status":  "see tests",
+                                    "tests":  [
+                                                  "TC-INF-003-BIND"
+                                              ]
+                                }
+                            ],
+    "tests":  [
+                  {
+                      "id":  "TC-INF-003-A",
+                      "status":  "PASS",
+                      "expected":  "Doctor captures real MetaEditor/MT5/Git absolute paths/versions plus install-data map; agents classified without operational claim",
+                      "actual":  "exit=0 meta=C:\\Program Files\\MetaTrader 5\\metaeditor64.exe ver=5.0.0.6230 term=C:\\Program Files\\MetaTrader 5\\terminal64.exe git=C:\\Program Files\\Git\\cmd\\git.exe mapped_roots=2 discovered_agents=20 operational_metatester=0 readiness_claimed=False"
+                  },
+                  {
+                      "id":  "TC-INF-003-B",
+                      "status":  "PASS",
+                      "expected":  "Invalid MetaEditor path =\u003e nonzero exit and precise error",
+                      "actual":  "exit=1 precise_error=true path=C:\\Program Files\\MetaTrader 5\\metaeditor64-DOES-NOT-EXIST.exe"
+                  },
+                  {
+                      "id":  "TC-INF-003-C",
+                      "status":  "PASS",
+                      "expected":  "Path with spaces/non-ASCII correctly handled or explicitly BLOCKED",
+                      "actual":  "handled spaced/unicode path exit=0 path=C:\\Users\\Administrator\\AppData\\Local\\Temp\\2\\INF-003 Env Doctor Тест\\MetaTrader 5\\metaeditor64.exe mode=copy"
+                  },
+                  {
+                      "id":  "TC-INF-003-D",
+                      "status":  "PASS",
+                      "expected":  "Missing/unavailable Tester Agent directories =\u003e nonzero BLOCKED",
+                      "actual":  "exit=1 status=BLOCKED discovered=0"
+                  },
+                  {
+                      "id":  "TC-INF-003-E",
+                      "status":  "PASS",
+                      "expected":  "Inaccessible required MetaEditor path =\u003e nonzero actionable failure",
+                      "actual":  "exit=1 precise_error=true status=FAIL"
+                  },
+                  {
+                      "id":  "TC-INF-003-F",
+                      "status":  "PASS",
+                      "expected":  "Differing MetaEditor/MT5 FileVersion =\u003e FAIL with mismatch evidence",
+                      "actual":  "exit=1 versions=5.0.0.6230,EMPTY"
+                  },
+                  {
+                      "id":  "REG-INF-003-1",
+                      "status":  "PASS",
+                      "expected":  "No MQL5 trading sources present/changed for this infrastructure issue",
+                      "actual":  "mq5/mqh/ex5 count=0 under repo worktree"
+                  },
+                  {
+                      "id":  "REG-INF-003-2",
+                      "status":  "PASS",
+                      "expected":  "Governance/issue/PR templates unchanged vs claim baseline; AGENTS==GPT_MASTER hash",
+                      "actual":  "delta_count=0 agents_gpt_identical=True sha256=C7ABA1687F898A7523697DEFCC93E9F475F4CE8C8621861749BE870AB7DA108E"
+                  },
+                  {
+                      "id":  "TC-INF-003-BIND",
+                      "status":  "PASS",
+                      "expected":  "Evidence bound to full tested commit SHA on clean evaluation tree",
+                      "actual":  "tested_sha=7835ef901712f9c41a5c5c2d361cc66222e4accb branch=test/issue-3-inf-003-env-doctor porcelain_empty=True"
+                  }
+              ],
+    "failure_count":  0,
+    "evidence_dir":  "C:\\Project\\ai_bot_trade_inf003\\artifacts\\issue-3\\run-20261127-inf003-r2",
+    "evidence_binding_note":  "Tests executed on clean tree at tested_commit. Evidence publication commit is separate and must not be treated as the tested revision."
+}
