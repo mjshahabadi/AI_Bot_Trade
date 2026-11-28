@@ -1,0 +1,22 @@
+INF-003 EnvDoctor start 2026-11-28T14:45:59.7943387Z mode=verified_preflight
+host=WIN-8F5G6TCFF1J user=Administrator
+os=Microsoft Windows NT 10.0.17763.0
+powershell=5.1.17763.9376
+cwd=C:\Project\ai_bot_trade_inf003_pmv
+repo_root=C:\Project\ai_bot_trade_inf003_pmv
+output_dir=C:\Project\ai_bot_trade_pmv_evidence\run-20261128-inf003-postmerge\pmv-003-negative
+gates RequireTools=True RequireAgentDirectories=True FailOnBuildMismatch=True ValidateExecutables=True FailOnEmptyVersion=True MinAgentDirectories=1
+override MetaEditorPath=C:\Program Files\MetaTrader 5\DOES_NOT_EXIST_metaeditor64.exe
+ERROR MetaEditorPath override not found: C:\Program Files\MetaTrader 5\DOES_NOT_EXIST_metaeditor64.exe
+override InstallRoot=C:\Program Files\MetaTrader 5
+metaeditor=NOT_FOUND
+terminal=NOT_FOUND
+metatester=NOT_FOUND
+git available=True repo=True head=d5fa8fe75747f85e6ed3d7f15e408457f4abd6bd head_valid=True err=
+discovered_agent_directories count=20 root=C:\Users\Administrator\AppData\Roaming\MetaQuotes\Tester
+operational_metatester_processes count=0
+operational_readiness_claimed=False operational_agent_ready=False
+build_consistency consistent=False mismatch=False empty=False versions=
+wrote C:\Project\ai_bot_trade_pmv_evidence\run-20261128-inf003-postmerge\pmv-003-negative\doctor_report.json
+wrote C:\Project\ai_bot_trade_pmv_evidence\run-20261128-inf003-postmerge\pmv-003-negative\doctor_report.txt
+overall_status=FAIL readiness_mode=verified_preflight verified_preflight_passed=False

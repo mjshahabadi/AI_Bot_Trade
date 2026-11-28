@@ -1,0 +1,25 @@
+run_id=run-20261128-inf003-postmerge
+merge_sha=d5fa8fe75747f85e6ed3d7f15e408457f4abd6bd
+host=WIN-8F5G6TCFF1J
+verified_utc=2026-11-28T14:48:41.564608Z
+OK=17
+MISMATCHES=0
+result=PASS
+note=checksum_independent_verify.txt is generated after evidence_sha256.txt and is outside the hashed set.
+OK  host_context.txt
+OK  pmv-002-positive/command.txt
+OK  pmv-002-positive/doctor_report.json
+OK  pmv-002-positive/doctor_report.txt
+OK  pmv-002-positive/exit_code.txt
+OK  pmv-002-positive/stderr.log
+OK  pmv-002-positive/stdout.log
+OK  pmv-003-negative/command.txt
+OK  pmv-003-negative/doctor_report.json
+OK  pmv-003-negative/doctor_report.txt
+OK  pmv-003-negative/exit_code.txt
+OK  pmv-003-negative/stderr.log
+OK  pmv-003-negative/stdout.log
+OK  pmv-004-integrity.txt
+OK  run_manifest.json
+OK  test_summary.md
+OK  unit_test_results.csv

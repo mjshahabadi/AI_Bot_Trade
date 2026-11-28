@@ -1,0 +1,12 @@
+﻿run_id=run-20261128-inf003-postmerge
+task=INF-003 post-merge verification
+host=WIN-8F5G6TCFF1J
+os=Windows_NT
+powershell=5.1.17763.9376
+merge_sha=d5fa8fe75747f85e6ed3d7f15e408457f4abd6bd
+approved_head=8224d7efa84acac14cb5d54e40040f535b811f28
+tested_r4_source=ca5cc62351146d6216dc7a518a4b6c8300823a69
+worktree=C:\Project\ai_bot_trade_inf003_pmv
+worktree_head=d5fa8fe75747f85e6ed3d7f15e408457f4abd6bd
+timestamp_utc_start=2026-11-28T14:45:23.8366447Z
+install_root=C:\Program Files\MetaTrader 5
