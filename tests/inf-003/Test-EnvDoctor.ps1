@@ -42,6 +42,39 @@ function Invoke-GitChecked {
     return [pscustomobject]@{ Ok = ($p.ExitCode -eq 0); ExitCode = $p.ExitCode; Output = $out.Trim(); Error = $err.Trim() }
 }
 
+function Get-PorcelainOutsideEvidence {
+    <#
+      Return git porcelain lines for RepoPath excluding the EvidencePath tree.
+      TC-M writes probe artifacts under EvidenceDir; those must not count as user-worktree pollution.
+    #>
+    param([string]$RepoPath, [string]$EvidencePath, [string]$Porcelain = $null)
+    if ($null -eq $Porcelain) {
+        $Porcelain = (Invoke-GitChecked -RepoPath $RepoPath -GitArgs @("status", "--porcelain=v1")).Output
+    }
+    if ([string]::IsNullOrWhiteSpace($Porcelain)) { return "" }
+    $repoFull = [System.IO.Path]::GetFullPath($RepoPath).TrimEnd('\', '/')
+    $evFull = [System.IO.Path]::GetFullPath($EvidencePath).TrimEnd('\', '/')
+    $evRel = $evFull
+    if ($evFull.StartsWith($repoFull, [System.StringComparison]::OrdinalIgnoreCase)) {
+        $evRel = $evFull.Substring($repoFull.Length).TrimStart('\', '/').Replace('\', '/')
+    }
+    else {
+        $evRel = $evRel.Replace('\', '/')
+    }
+    $kept = New-Object System.Collections.Generic.List[string]
+    foreach ($line in ($Porcelain -split "`r?`n")) {
+        if ([string]::IsNullOrWhiteSpace($line)) { continue }
+        $pathPart = if ($line.Length -ge 3) { $line.Substring(3) } else { $line }
+        if ($pathPart -match ' -> ') { $pathPart = ($pathPart -split ' -> ')[-1] }
+        $pathNorm = $pathPart.Trim().Trim('"').Replace('\', '/')
+        if ($pathNorm -eq $evRel -or $pathNorm.StartsWith($evRel + '/', [System.StringComparison]::OrdinalIgnoreCase)) {
+            continue
+        }
+        $kept.Add($line) | Out-Null
+    }
+    return ($kept -join "`n")
+}
+
 function Invoke-DoctorCapture {
     param([hashtable]$DoctorParams, [string]$OutDir)
     New-Item -ItemType Directory -Force -Path $OutDir | Out-Null
@@ -572,7 +605,8 @@ $wtPath = Join-Path $env:TEMP ("inf003-dirty-wt-" + [guid]::NewGuid().ToString("
 $wtEvidence = Join-Path $outM "probe-evidence"
 $mOk = $false
 $mActual = "not_executed"
-$userStatusBefore = (Invoke-GitChecked -RepoPath $RepoRoot -GitArgs @("status", "--porcelain=v1")).Output
+# Exclude EvidenceDir from "user untouched" porcelain: TC-M probe artifacts are written there by design.
+$userStatusBefore = Get-PorcelainOutsideEvidence -RepoPath $RepoRoot -EvidencePath $EvidenceDir
 try {
     $addWt = Invoke-GitChecked -RepoPath $RepoRoot -GitArgs @("worktree", "add", "--detach", $wtPath, $testedSha)
     if (-not $addWt.Ok) { throw "worktree add failed: $($addWt.Error)" }
@@ -609,8 +643,9 @@ try {
         $probeManifest = Get-Content -LiteralPath $probeManifestPath -Raw -Encoding UTF8 | ConvertFrom-Json
         Copy-Item -LiteralPath $probeManifestPath -Destination (Join-Path $outM "probe_run_manifest.json") -Force
     }
-    $userStatusAfter = (Invoke-GitChecked -RepoPath $RepoRoot -GitArgs @("status", "--porcelain=v1")).Output
-    $userUntouched = ($userStatusBefore -eq $userStatusAfter) -and [string]::IsNullOrWhiteSpace($userStatusAfter)
+    $userStatusAfter = Get-PorcelainOutsideEvidence -RepoPath $RepoRoot -EvidencePath $EvidenceDir
+    $markerInUserTree = Test-Path -LiteralPath (Join-Path $RepoRoot "INF003-DIRTY-MARKER.txt")
+    $userUntouched = ($userStatusBefore -eq $userStatusAfter) -and (-not $markerInUserTree)
     $noVerifiedSuccess = ($null -eq $probeManifest) -or ($probeManifest.binding_rejected -eq $true) -or ($probeManifest.verified_evidence_manifest -eq $false)
     if ($proc.ExitCode -ne 0 -and $probeManifest -and $probeManifest.binding_rejected -eq $true -and $noVerifiedSuccess -and $userUntouched -and ($mOut -match "BINDING_REJECTED")) {
         $mOk = $true

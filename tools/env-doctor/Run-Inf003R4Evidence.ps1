@@ -5,12 +5,21 @@
 #>
 [CmdletBinding()]
 param(
-    [string]$RepoRoot = (Resolve-Path (Join-Path $PSScriptRoot "..\..")).Path,
+    [string]$RepoRoot = "",
     [string]$EvidenceDir = ""
 )
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
+
+# Resolve defaults after param bind: PS 5.1 can leave $PSScriptRoot empty during default evaluation.
+if ([string]::IsNullOrWhiteSpace($RepoRoot)) {
+    $scriptDir = $PSScriptRoot
+    if ([string]::IsNullOrWhiteSpace($scriptDir)) {
+        $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
+    }
+    $RepoRoot = (Resolve-Path (Join-Path $scriptDir "..\..")).Path
+}
 
 if (-not $EvidenceDir) {
     $EvidenceDir = Join-Path $RepoRoot "artifacts\issue-3\run-20261127-inf003-r4"
